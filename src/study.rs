@@ -9,7 +9,7 @@
 
 use rayon::prelude::*;
 
-use crate::analysis::{anomaly, local_anomaly, notch_depth, ANOMALY_BAND};
+use crate::analysis::{anomaly, local_anomaly, notch_depth, roughness, ANOMALY_BAND};
 use crate::crossover::{self, Kind, KINDS};
 use crate::cta2034;
 use crate::mat::Mat;
@@ -41,6 +41,7 @@ pub const MAP_FREQS: [f64; 5] = [500.0, 1000.0, 2200.0, 4000.0, 8000.0];
 /// One setup reduced to weights: images (directions in the speaker frame, weights per frequency,
 /// category, delay) and the diffuse field over the quadrature.
 pub struct RoomKernel {
+    pub images: room::Images,
     pub directions: Vec<Vec3>,
     pub weights: Mat<f64>,
     pub category: Vec<u8>,
@@ -63,7 +64,7 @@ pub fn room_kernel(setup: &Setup, freqs: &[f64], grid: &[Vec3], solid_angle: f64
         })
         .collect();
     let diffuse = room::diffuse_weights(setup, grid, solid_angle, freqs, MAX_ORDER);
-    RoomKernel { directions: images.direction, weights, category, delay: images.delay, diffuse }
+    RoomKernel { directions: images.direction.clone(), delay: images.delay.clone(), images, weights, category, diffuse }
 }
 
 /// Energy at the listener per category, ``(n_categories, n_freqs)``; ``power_images`` the power
@@ -140,9 +141,10 @@ fn band_mean(values: &[f64], mask: &[bool]) -> f64 {
     s / n as f64
 }
 
-/// Per-direction metrics of a power matrix: anomaly, local anomaly, notch depth, band power.
-fn direction_metrics(freqs: &[f64], p: &Mat<f32>, band: &[bool]) -> [Vec<f32>; 4] {
-    let rows: Vec<[f32; 4]> = (0..p.rows)
+/// Per-direction metrics of a power matrix: anomaly, local anomaly, notch depth, band power,
+/// roughness.
+fn direction_metrics(freqs: &[f64], p: &Mat<f32>, band: &[bool]) -> [Vec<f32>; 5] {
+    let rows: Vec<[f32; 5]> = (0..p.rows)
         .into_par_iter()
         .map(|i| {
             let row: Vec<f64> = p.row(i).iter().map(|v| (*v as f64).max(1e-12)).collect();
@@ -151,14 +153,153 @@ fn direction_metrics(freqs: &[f64], p: &Mat<f32>, band: &[bool]) -> [Vec<f32>; 4
                 local_anomaly(freqs, &row) as f32,
                 notch_depth(freqs, &row) as f32,
                 band_mean(&p.row(i).iter().map(|v| *v as f64).collect::<Vec<_>>(), band) as f32,
+                roughness(freqs, &row) as f32,
             ]
         })
         .collect();
-    [0, 1, 2, 3].map(|k| rows.iter().map(|r| r[k]).collect())
+    [0, 1, 2, 3, 4].map(|k| rows.iter().map(|r| r[k]).collect())
+}
+
+/// How the variants are computed.
+#[derive(Clone, Debug)]
+pub struct Options {
+    /// Orientations: rolls about the axis (degrees).
+    pub rolls: Vec<f64>,
+    /// Take every path from each driver's own position (its own direction, length and
+    /// reflection), the drivers adding with their phases along it; otherwise every path leaves
+    /// the reference point in the far field. Upright only.
+    pub per_driver: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Options { rolls: ROLLS.to_vec(), per_driver: false }
+    }
 }
 
 /// Everything the figures and tables need, for the setups and layouts given.
 pub fn run(setups: &[Setup], n_random: usize, layouts: &[Layout], freqs: &[f64]) -> Results {
+    run_with(setups, n_random, layouts, freqs, &Options::default())
+}
+
+/// The responses of a layout's drivers along every path of a room, each path taken from the
+/// driver's own position: ``H_d(u_d) exp(-j k (u_d . c_d + r_d - r_0)) sqrt(w_d / w_0)``, ``u_d``,
+/// ``r_d`` and ``w_d`` the direction, length and energy weight of the path from driver ``d``,
+/// ``r_0`` and ``w_0`` those from the reference point (whose weights the room kernel holds).
+pub fn driver_paths(setup: &Setup, kernel: &RoomKernel, far: &FarField, freqs: &[f64]) -> Vec<Mat<C32>> {
+    let axes = setup.axes();
+    let reference = &kernel.images;
+    let n_img = reference.order.len();
+    let nf = freqs.len();
+    far.layout
+        .drivers
+        .iter()
+        .enumerate()
+        .map(|(d, drv)| {
+            let c = drv.centre();
+            let mut st = setup.clone();
+            st.source = [0, 1, 2].map(|i| setup.source[i] + c[0] * axes[0][i] + c[1] * axes[1][i] + c[2] * axes[2][i]);
+            let im = room::image_sources(&st, MAX_ORDER);
+            let w = room::specular_weights(&st, &im, freqs);
+            let index: std::collections::HashMap<[i8; 6], usize> = im.ident.iter().enumerate().map(|(i, id)| (*id, i)).collect();
+            let mut m = Mat::<C32>::zeros(n_img, nf);
+            let mut row = vec![C32::new(0.0, 0.0); nf];
+            for i in 0..n_img {
+                let j = index[&reference.ident[i]];
+                let u = im.direction[j];
+                far.response(d, &u, &mut row);
+                let shift = crate::dot(&u, &c) + im.distance[j] - reference.distance[i];
+                for (q, (out, h)) in m.row_mut(i).iter_mut().zip(&row).enumerate() {
+                    let amp = (w.row(j)[q] / kernel.weights.row(i)[q]).sqrt();
+                    let v = C64::new(h.re as f64, h.im as f64) * C64::from_polar(amp, -far.k[q] * shift);
+                    *out = C32::new(v.re as f32, v.im as f32);
+                }
+            }
+            m
+        })
+        .collect()
+}
+
+/// Sound power over the sphere rebuilt from the two orbits driver by driver: each driver's
+/// complex response, relative to its own centre, interpolated over the sphere between the four
+/// half-orbits (linearly in the angle from the axis, by ``cos^2`` and ``sin^2`` of the angle
+/// around it), then the drivers added with their positions. ``responses``: the drivers at the 70
+/// directions.
+pub fn sp_from_ways(filters: &[Vec<C64>], responses: &[Mat<C32>], far: &FarField, grid: &[Vec3]) -> Vec<f64> {
+    let dirs = cta2034::directions();
+    let nf = far.k.len();
+    let centres: Vec<Vec3> = far.layout.drivers.iter().map(|d| d.centre()).collect();
+    // Each driver relative to its own centre, filtered, at the 70 directions.
+    let g: Vec<Vec<Vec<C64>>> = (0..centres.len())
+        .map(|d| {
+            (0..dirs.len())
+                .map(|i| {
+                    let us = crate::dot(&dirs[i], &centres[d]);
+                    (0..nf)
+                        .map(|j| {
+                            let h = responses[d].row(i)[j];
+                            filters[d][j] * C64::new(h.re as f64, h.im as f64) * C64::from_polar(1.0, -far.k[j] * us)
+                        })
+                        .collect()
+                })
+                .collect()
+        })
+        .collect();
+    // Four orbit samples and their weights for every direction of the grid.
+    let corners: Vec<[(usize, f64); 4]> = grid
+        .iter()
+        .map(|u| {
+            let alpha = u[2].clamp(-1.0, 1.0).acos().to_degrees();
+            let psi = u[1].atan2(u[0]).to_degrees().rem_euclid(360.0);
+            let q = ((psi / 90.0).floor() as usize).min(3);
+            let t = (psi - 90.0 * q as f64).to_radians();
+            let a0 = ((alpha / 10.0).floor() * 10.0).min(170.0);
+            let s = (alpha - a0) / 10.0;
+            // Half-orbits in order around the axis: right, up, left, down.
+            let half = |h: usize, a: f64| -> usize {
+                let a = a.round() as i32;
+                match h % 4 {
+                    0 => cta2034::index_of('h', a),
+                    1 => cta2034::index_of('v', a),
+                    2 => cta2034::index_of('h', -a),
+                    _ => cta2034::index_of('v', -a),
+                }
+            };
+            let (wa, wb) = (t.cos().powi(2), t.sin().powi(2));
+            [
+                (half(q, a0), wa * (1.0 - s)),
+                (half(q, a0 + 10.0), wa * s),
+                (half(q + 1, a0), wb * (1.0 - s)),
+                (half(q + 1, a0 + 10.0), wb * s),
+            ]
+        })
+        .collect();
+    let total: Vec<f64> = grid
+        .par_iter()
+        .zip(corners.par_iter())
+        .map(|(u, c)| {
+            let mut p = vec![0.0; nf];
+            for (j, pj) in p.iter_mut().enumerate() {
+                let mut h = C64::new(0.0, 0.0);
+                for (d, gd) in g.iter().enumerate() {
+                    let mut v = C64::new(0.0, 0.0);
+                    for (i, w) in c {
+                        v += gd[*i][j] * *w;
+                    }
+                    h += v * C64::from_polar(1.0, far.k[j] * crate::dot(u, &centres[d]));
+                }
+                *pj = h.norm_sqr();
+            }
+            p
+        })
+        .reduce(|| vec![0.0; nf], |a, b| a.iter().zip(&b).map(|(x, y)| x + y).collect());
+    total.iter().map(|v| v / grid.len() as f64).collect()
+}
+
+/// Everything the figures and tables need, for the setups and layouts given, computed as
+/// ``opts`` says.
+pub fn run_with(setups: &[Setup], n_random: usize, layouts: &[Layout], freqs: &[f64], opts: &Options) -> Results {
+    assert!(!opts.per_driver || opts.rolls.iter().all(|r| *r == 0.0), "per-driver paths: upright only");
     let grid = sphere::fibonacci(N_GRID);
     let solid_angle = 4.0 * std::f64::consts::PI / N_GRID as f64;
     let nf = freqs.len();
@@ -182,17 +323,18 @@ pub fn run(setups: &[Setup], n_random: usize, layouts: &[Layout], freqs: &[f64])
     for (li, layout) in layouts.iter().enumerate() {
         let on = fars[li].on_axis();
         let filters: Vec<(Kind, Vec<Vec<C64>>)> = KINDS.iter().map(|&k| (k, crossover::filters(k, freqs, layout, &on))).collect();
-        for &r in &ROLLS {
+        for &r in &opts.rolls {
             let resp_cta = fars[li].responses(&roll(&cta_dirs, r));
             let resp_grid = fars[li].responses(&roll(&grid, r));
             for (kind, x) in &filters {
                 let p_cta = power(x, &resp_cta);
                 let p_grid = power(x, &resp_grid);
-                let [anom_cta, local_cta, notch_cta, pband_cta] = direction_metrics(freqs, &p_cta, &band);
-                let [anom_grid, local_grid, notch_grid, pband_grid] = direction_metrics(freqs, &p_grid, &band);
+                let [anom_cta, local_cta, notch_cta, pband_cta, rough_cta] = direction_metrics(freqs, &p_cta, &band);
+                let [anom_grid, local_grid, notch_grid, pband_grid, rough_grid] = direction_metrics(freqs, &p_grid, &band);
                 variants.push(VariantResults {
                     name: variant_name(layout, r, *kind),
                     sp_full: p_grid.column_mean(),
+                    sp_ways: if r == 0.0 { sp_from_ways(x, &resp_cta, &fars[li], &grid) } else { Vec::new() },
                     cta: p_cta,
                     anom_cta,
                     anom_grid,
@@ -202,6 +344,8 @@ pub fn run(setups: &[Setup], n_random: usize, layouts: &[Layout], freqs: &[f64])
                     notch_grid,
                     pband_cta,
                     pband_grid,
+                    rough_cta,
+                    rough_grid,
                     ..Default::default()
                 });
                 grid_powers.push(p_grid);
@@ -221,7 +365,8 @@ pub fn run(setups: &[Setup], n_random: usize, layouts: &[Layout], freqs: &[f64])
         map_w: Vec<Vec<f64>>,
         band_w: Vec<f64>,
         diffuse_band: Vec<f64>,
-        img_metrics: Vec<[Vec<f32>; 4]>, // [variant]
+        img_metrics: Vec<[Vec<f32>; 5]>, // [variant]
+        far: Vec<[Vec<f64>; 2]>,         // [variant]: steady state, early sound (per-driver runs)
     }
     let outs: Vec<RoomOut> = setups
         .par_iter()
@@ -230,6 +375,7 @@ pub fn run(setups: &[Setup], n_random: usize, layouts: &[Layout], freqs: &[f64])
             let omni = category_sums(&k, None, None);
             let mut sums = Vec::new();
             let mut img_metrics = Vec::new();
+            let mut far = Vec::new();
             let mut vi = 0;
             for o in &orientations {
                 let dirs = roll(&k.directions, o.roll);
@@ -242,17 +388,23 @@ pub fn run(setups: &[Setup], n_random: usize, layouts: &[Layout], freqs: &[f64])
                         m
                     })
                     .collect();
+                let near = opts.per_driver.then(|| driver_paths(setup, &k, &fars[o.layout], freqs));
                 for (_, x) in &o.filters {
-                    let p_img = power_serial(x, &resp);
+                    let p_img = power_serial(x, near.as_ref().unwrap_or(&resp));
                     sums.push(category_sums(&k, Some(&p_img), Some(&grid_powers[vi])));
                     img_metrics.push(direction_metrics_serial(freqs, &p_img, &band));
+                    if opts.per_driver {
+                        let c = category_sums(&k, Some(&power_serial(x, &resp)), Some(&grid_powers[vi]));
+                        let total = |upto: usize| (0..nf).map(|j| c[..upto].iter().map(|v| v[j]).sum()).collect::<Vec<f64>>();
+                        far.push([total(CATEGORIES.len()), total(crate::analysis::EARLY)]);
+                    }
                     vi += 1;
                 }
             }
             let map_w = (0..k.weights.rows).map(|i| map_idx.iter().map(|&j| k.weights.row(i)[j]).collect()).collect();
             let band_w = (0..k.weights.rows).map(|i| band_mean(k.weights.row(i), &band)).collect();
             let diffuse_band = (0..k.diffuse.rows).map(|i| band_mean(k.diffuse.row(i), &band)).collect();
-            RoomOut { omni, sums, dirs: k.directions, cat: k.category, delay: k.delay, map_w, band_w, diffuse_band, img_metrics }
+            RoomOut { omni, sums, dirs: k.directions, cat: k.category, delay: k.delay, map_w, band_w, diffuse_band, img_metrics, far }
         })
         .collect();
     eprintln!("rooms: {}", outs.len());
@@ -310,6 +462,18 @@ pub fn run(setups: &[Setup], n_random: usize, layouts: &[Layout], freqs: &[f64])
             v.local_img.extend(&o.img_metrics[vi][1]);
             v.notch_img.extend(&o.img_metrics[vi][2]);
             v.pband_img.extend(&o.img_metrics[vi][3]);
+            v.rough_img.extend(&o.img_metrics[vi][4]);
+        }
+        if opts.per_driver {
+            let mut m = Mat::<f32>::zeros(n_rooms * 2, nf);
+            for (r, o) in outs.iter().enumerate() {
+                for kind in 0..2 {
+                    for (dst, x) in m.row_mut(r * 2 + kind).iter_mut().zip(&o.far[vi][kind]) {
+                        *dst = *x as f32;
+                    }
+                }
+            }
+            v.rooms_far = m;
         }
     }
     let mut image_starts = vec![0usize];
@@ -370,8 +534,8 @@ fn power_serial(filters: &[Vec<C64>], responses: &[Mat<C32>]) -> Mat<f32> {
     out
 }
 
-fn direction_metrics_serial(freqs: &[f64], p: &Mat<f32>, band: &[bool]) -> [Vec<f32>; 4] {
-    let mut out: [Vec<f32>; 4] = Default::default();
+fn direction_metrics_serial(freqs: &[f64], p: &Mat<f32>, band: &[bool]) -> [Vec<f32>; 5] {
+    let mut out: [Vec<f32>; 5] = Default::default();
     for i in 0..p.rows {
         let raw: Vec<f64> = p.row(i).iter().map(|v| *v as f64).collect();
         let row: Vec<f64> = raw.iter().map(|v| v.max(1e-12)).collect();
@@ -379,6 +543,7 @@ fn direction_metrics_serial(freqs: &[f64], p: &Mat<f32>, band: &[bool]) -> [Vec<
         out[1].push(local_anomaly(freqs, &row) as f32);
         out[2].push(notch_depth(freqs, &row) as f32);
         out[3].push(band_mean(&raw, band) as f32);
+        out[4].push(roughness(freqs, &row) as f32);
     }
     out
 }

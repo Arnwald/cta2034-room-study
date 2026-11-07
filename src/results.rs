@@ -36,6 +36,16 @@ pub struct VariantResults {
     pub pband_cta: Vec<f32>,
     pub pband_grid: Vec<f32>,
     pub pband_img: Vec<f32>,
+    /// Roughness (dB RMS, [`crate::analysis::roughness`]) in the same directions.
+    pub rough_cta: Vec<f32>,
+    pub rough_grid: Vec<f32>,
+    pub rough_img: Vec<f32>,
+    /// Sound power rebuilt from the two orbits driver by driver (upright only).
+    pub sp_ways: Vec<f64>,
+    /// With the paths taken from each driver: the same rooms with every path leaving the
+    /// loudspeaker's reference point in the far field, steady state and early sound,
+    /// ``(n_rooms * 2, n_freqs)``.
+    pub rooms_far: Mat<f32>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

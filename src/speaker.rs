@@ -38,6 +38,8 @@ pub struct Cabinet {
 pub struct DriverSpec {
     pub name: String,
     pub label: String,
+    /// The way the driver belongs to (0: the lowest); drivers of one way share its filter.
+    pub way: usize,
     pub x: f64,
     pub y: f64,
     pub radius: f64,
@@ -46,8 +48,8 @@ pub struct DriverSpec {
 }
 
 impl DriverSpec {
-    pub fn new(name: &str, label: &str, x: f64, y: f64, radius: f64, height: f64) -> Self {
-        DriverSpec { name: name.into(), label: label.into(), x, y, radius, height, waveguide: None }
+    pub fn new(name: &str, label: &str, way: usize, x: f64, y: f64, radius: f64, height: f64) -> Self {
+        DriverSpec { name: name.into(), label: label.into(), way, x, y, radius, height, waveguide: None }
     }
 
     /// The radiator whose surface drives the edges (the dome itself).
@@ -75,8 +77,11 @@ pub struct Layout {
     pub cabinet: Cabinet,
     /// Drivers, lowest way first.
     pub drivers: Vec<DriverSpec>,
-    /// Crossover frequency between consecutive drivers (Hz), lowest first.
+    /// Crossover frequency between consecutive ways (Hz), lowest first.
     pub crossovers: Vec<f64>,
+    /// The cabinet stands on the floor (its baffle's centre half its height up); otherwise it sits
+    /// on a stand, its baffle's centre at the setup's loudspeaker position.
+    pub floor: bool,
 }
 
 impl Layout {
@@ -94,10 +99,11 @@ pub fn two_way() -> Layout {
         label: "two-way, 6.5 in cone and 1 in dome, 140 mm apart".into(),
         cabinet: Cabinet { width: 0.200, height: 0.360, depth: 0.280 },
         drivers: vec![
-            DriverSpec::new("woofer", "6.5 in cone", 0.0, -0.030, 0.064, 0.0),
-            DriverSpec::new("tweeter", "1.1 in dome", 0.0, 0.110, 0.014, 0.0075),
+            DriverSpec::new("woofer", "6.5 in cone", 0, 0.0, -0.030, 0.064, 0.0),
+            DriverSpec::new("tweeter", "1.1 in dome", 1, 0.0, 0.110, 0.014, 0.0075),
         ],
         crossovers: vec![2200.0],
+        floor: false,
     }
 }
 
@@ -108,10 +114,109 @@ pub fn two_way_waveguide() -> Layout {
     l.name = "two_way_wg".into();
     l.label = "two-way, 6.5 in cone and 1 in dome in a waveguide matched at the crossover".into();
     let ka = 2.0 * std::f64::consts::PI * 2200.0 / C * 0.064;
-    let mut tw = DriverSpec::new("tweeter", "1.1 in dome in a waveguide", 0.0, 0.110, 0.014, 0.0075);
+    let mut tw = DriverSpec::new("tweeter", "1.1 in dome in a waveguide", 1, 0.0, 0.110, 0.014, 0.0075);
     tw.waveguide = Some((0.064, ka));
     l.drivers[1] = tw;
     l
+}
+
+/// A dome in a waveguide whose directivity matches a cone of radius ``radius`` at ``fc``.
+fn matched(mut dome: DriverSpec, radius: f64, fc: f64) -> DriverSpec {
+    dome.waveguide = Some((radius, 2.0 * std::f64::consts::PI * fc / C * radius));
+    dome
+}
+
+/// A coaxial two-way, 300 x 420 x 300 mm: a 1-inch dome at the centre of an 8-inch cone, which
+/// guides it (directivity matched at the 1.8 kHz crossover), no offset between the two.
+pub fn coaxial() -> Layout {
+    Layout {
+        name: "coaxial".into(),
+        label: "coaxial two-way, 8 in cone guiding a 1 in dome".into(),
+        cabinet: Cabinet { width: 0.300, height: 0.420, depth: 0.300 },
+        drivers: vec![
+            DriverSpec::new("woofer", "8 in cone", 0, 0.0, 0.020, 0.085, 0.0),
+            matched(DriverSpec::new("tweeter", "1 in dome in the cone", 1, 0.0, 0.020, 0.0125, 0.006), 0.085, 1800.0),
+        ],
+        crossovers: vec![1800.0],
+        floor: false,
+    }
+}
+
+/// A two-way MTM, 200 x 480 x 280 mm: a 1.1-inch dome between two 5.25-inch cones, 115 mm above
+/// and below it, crossed over at 2.5 kHz.
+pub fn mtm() -> Layout {
+    Layout {
+        name: "mtm".into(),
+        label: "two-way MTM, two 5.25 in cones around a 1 in dome".into(),
+        cabinet: Cabinet { width: 0.200, height: 0.480, depth: 0.280 },
+        drivers: vec![
+            DriverSpec::new("woofer_low", "5.25 in cone, below", 0, 0.0, -0.115, 0.055, 0.0),
+            DriverSpec::new("woofer_high", "5.25 in cone, above", 0, 0.0, 0.115, 0.055, 0.0),
+            DriverSpec::new("tweeter", "1.1 in dome", 1, 0.0, 0.0, 0.014, 0.0075),
+        ],
+        crossovers: vec![2500.0],
+        floor: false,
+    }
+}
+
+/// The horizontal three-way monitor of the turntable study, 440 x 290 x 290 mm: an 8-inch woofer
+/// on the left, a 3-inch dome midrange and a 1.1-inch dome stacked on the right, crossed over at
+/// 450 Hz and 3 kHz.
+pub fn three_way_monitor() -> Layout {
+    Layout {
+        name: "three_way_monitor".into(),
+        label: "horizontal three-way monitor, woofer beside the midrange and tweeter".into(),
+        cabinet: Cabinet { width: 0.440, height: 0.290, depth: 0.290 },
+        drivers: vec![
+            DriverSpec::new("woofer", "8 in cone", 0, -0.085, 0.0, 0.0838, 0.0),
+            DriverSpec::new("mid", "3 in dome", 1, 0.120, -0.0485, 0.060, 0.0175),
+            DriverSpec::new("tweeter", "1.1 in dome", 2, 0.120, 0.0815, 0.014, 0.0075),
+        ],
+        crossovers: vec![450.0, 3000.0],
+        floor: false,
+    }
+}
+
+/// A three-way tower on the floor, 220 x 1000 x 300 mm: two 6.5-inch woofers, a 4-inch midrange
+/// and a 1.1-inch dome 880 mm above the floor, crossed over at 350 Hz and 2.8 kHz.
+pub fn three_way_tower() -> Layout {
+    Layout {
+        name: "three_way_tower".into(),
+        label: "three-way tower, two woofers, midrange, tweeter".into(),
+        cabinet: Cabinet { width: 0.220, height: 1.000, depth: 0.300 },
+        drivers: vec![
+            DriverSpec::new("woofer_low", "6.5 in cone, lower", 0, 0.0, -0.300, 0.064, 0.0),
+            DriverSpec::new("woofer_high", "6.5 in cone, upper", 0, 0.0, -0.120, 0.064, 0.0),
+            DriverSpec::new("mid", "4 in cone", 1, 0.0, 0.240, 0.045, 0.0),
+            DriverSpec::new("tweeter", "1.1 in dome", 2, 0.0, 0.380, 0.014, 0.0075),
+        ],
+        crossovers: vec![350.0, 2800.0],
+        floor: true,
+    }
+}
+
+/// A four-way tower on the floor, 260 x 1100 x 350 mm: an 8-inch woofer, a 6.5-inch low midrange,
+/// a 4-inch midrange and a 1.1-inch dome 960 mm above the floor, crossed over at 250 Hz, 900 Hz and
+/// 3.2 kHz.
+pub fn four_way_tower() -> Layout {
+    Layout {
+        name: "four_way_tower".into(),
+        label: "four-way tower".into(),
+        cabinet: Cabinet { width: 0.260, height: 1.100, depth: 0.350 },
+        drivers: vec![
+            DriverSpec::new("woofer", "8 in cone", 0, 0.0, -0.360, 0.0838, 0.0),
+            DriverSpec::new("low_mid", "6.5 in cone", 1, 0.0, -0.080, 0.064, 0.0),
+            DriverSpec::new("mid", "4 in cone", 2, 0.0, 0.260, 0.045, 0.0),
+            DriverSpec::new("tweeter", "1.1 in dome", 3, 0.0, 0.410, 0.014, 0.0075),
+        ],
+        crossovers: vec![250.0, 900.0, 3200.0],
+        floor: true,
+    }
+}
+
+/// The loudspeakers of the library: the two two-ways of the study and five other families.
+pub fn library() -> Vec<Layout> {
+    vec![two_way(), two_way_waveguide(), coaxial(), mtm(), three_way_monitor(), three_way_tower(), four_way_tower()]
 }
 
 /// A straight run of edge elements along one side of the front baffle.

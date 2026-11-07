@@ -23,6 +23,7 @@ pub mod room;
 pub mod signal;
 pub mod special;
 pub mod speaker;
+pub mod standard;
 pub mod sphere;
 pub mod study;
 pub mod tables;

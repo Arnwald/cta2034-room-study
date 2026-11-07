@@ -2,7 +2,7 @@
 
 use inroom::crossover::{self, KINDS};
 use inroom::signal::log_grid;
-use inroom::speaker::{roll, two_way, two_way_waveguide, FarField};
+use inroom::speaker::{library, roll, two_way, two_way_waveguide, FarField};
 use inroom::{norm, sphere, C64};
 
 fn freqs() -> Vec<f64> {
@@ -37,7 +37,7 @@ fn roll_maps_directions() {
 #[test]
 fn equalized_sum_is_flat_on_axis() {
     let f = freqs();
-    for layout in [two_way(), two_way_waveguide()] {
+    for layout in library() {
         let far = FarField::new(&layout, &f);
         let on = far.on_axis();
         for k in KINDS {

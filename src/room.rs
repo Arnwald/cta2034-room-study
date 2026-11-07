@@ -263,6 +263,8 @@ pub struct Images {
     pub delay: Vec<f64>,
     /// Position of the image source (room frame).
     pub position: Vec<Vec3>,
+    /// The image's indices ``(n_x, n_y, n_z, q_x, q_y, q_z)``: the same image of another source.
+    pub ident: Vec<[i8; 6]>,
     /// First-order images: the surface, the material and the reflection point.
     pub first: Vec<Option<usize>>,
     pub material: Vec<Option<usize>>,
@@ -322,17 +324,19 @@ pub fn image_sources(setup: &Setup, max_order: usize) -> Images {
             point = Some(p);
         }
         items.push((dist, tmp.len()));
-        tmp.push((order, counts, dist, setup.to_speaker(&d_room), (dist - direct) / C, u, first, material, point));
+        let ident = [n[0] as i8, n[1] as i8, n[2] as i8, q[0] as i8, q[1] as i8, q[2] as i8];
+        tmp.push((order, counts, dist, setup.to_speaker(&d_room), (dist - direct) / C, u, ident, first, material, point));
     }
     items.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
     for (_, i) in items {
-        let (order, counts, dist, dir, delay, position, first, material, point) = tmp[i];
+        let (order, counts, dist, dir, delay, position, ident, first, material, point) = tmp[i];
         out.order.push(order);
         out.counts.push(counts);
         out.distance.push(dist);
         out.direction.push(dir);
         out.delay.push(delay);
         out.position.push(position);
+        out.ident.push(ident);
         out.first.push(first);
         out.material.push(material);
         out.point.push(point);

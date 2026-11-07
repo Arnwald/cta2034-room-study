@@ -20,6 +20,9 @@ use crate::special::{linefit, mean};
 pub const ANOMALY_BAND: (f64, f64) = (600.0, 8000.0);
 pub const CROSSOVER_BAND: (f64, f64) = (1100.0, 4400.0);
 pub const ERROR_BAND: (f64, f64) = (300.0, 16000.0);
+/// Band of the roughness, and the width of the smoothing it is taken against (octaves).
+pub const ROUGH_BAND: (f64, f64) = (200.0, 10000.0);
+pub const ROUGH_SMOOTHING: f64 = 1.0;
 /// The first (training) half of the random rooms fits the updated weights; the second tests them.
 pub const SPLIT: usize = 150;
 /// Categories of the early sound: the direct sound and the six first reflections.
@@ -60,6 +63,22 @@ pub fn local_anomaly(freqs: &[f64], power: &[f64]) -> f64 {
     (r.iter().map(|v| v * v).sum::<f64>() / r.len() as f64).sqrt()
 }
 
+/// Roughness of a response (dB RMS): its deviation, from 200 Hz to 10 kHz, from itself smoothed
+/// over one octave. Broad tilts and steps do not count; dips and peaks narrower than an octave,
+/// wherever the crossovers are, do.
+pub fn roughness(freqs: &[f64], power: &[f64]) -> f64 {
+    let smooth = crate::signal::smooth_power(freqs, power, ROUGH_SMOOTHING);
+    let (mut s, mut n) = (0.0, 0);
+    for ((f, p), m) in freqs.iter().zip(power).zip(&smooth) {
+        if *f >= ROUGH_BAND.0 && *f <= ROUGH_BAND.1 {
+            let r = db10(*p) - db10(*m);
+            s += r * r;
+            n += 1;
+        }
+    }
+    (s / n as f64).sqrt()
+}
+
 /// Depth of the deepest dip below the straight line within one octave of the crossover (dB).
 pub fn notch_depth(freqs: &[f64], power: &[f64]) -> f64 {
     -local_residual(freqs, power).iter().cloned().fold(f64::INFINITY, f64::min)
@@ -90,6 +109,7 @@ pub enum Metric {
     Anom,
     Local,
     Notch,
+    Rough,
 }
 
 pub struct Study {
@@ -161,6 +181,12 @@ impl Study {
         }
         let g = self.omni_sum(room, upto);
         e.iter().zip(&g).map(|(a, b)| a / b).collect()
+    }
+
+    /// Mean steady-state in-room response of the random rooms.
+    pub fn room_response_mean(&self, variant: &str) -> Vec<f64> {
+        let rs = self.rooms(variant, Which::Steady, self.random());
+        (0..self.res.freqs.len()).map(|j| rs.iter().map(|r| r[j]).sum::<f64>() / rs.len() as f64).collect()
     }
 
     pub fn rooms(&self, variant: &str, which: Which, rooms: Range<usize>) -> Vec<Vec<f64>> {
@@ -266,6 +292,7 @@ fn metric_key(m: Metric) -> usize {
         Metric::Anom => 0,
         Metric::Local => 1,
         Metric::Notch => 2,
+        Metric::Rough => 3,
     }
 }
 
@@ -277,9 +304,12 @@ fn metric_values<'a>(v: &'a crate::results::VariantResults, m: Metric, which: &s
         (1, "cta") => &v.local_cta,
         (1, "grid") => &v.local_grid,
         (1, _) => &v.local_img,
-        (_, "cta") => &v.notch_cta,
-        (_, "grid") => &v.notch_grid,
-        _ => &v.notch_img,
+        (2, "cta") => &v.notch_cta,
+        (2, "grid") => &v.notch_grid,
+        (2, _) => &v.notch_img,
+        (_, "cta") => &v.rough_cta,
+        (_, "grid") => &v.rough_grid,
+        _ => &v.rough_img,
     }
 }
 
