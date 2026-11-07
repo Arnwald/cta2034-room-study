@@ -4,12 +4,14 @@
 use std::path::PathBuf;
 
 use inroom::analysis::Study;
+use inroom::ensemble;
 use inroom::standard::{self, Library};
 
 fn main() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let study = Study::load(&root.join("results/study.bin"));
     let summary = standard::summary(&Library::load(&root.join("results/library")));
-    inroom::articles::all(&study, &summary, &root.join("articles/figures"));
+    let setups = ensemble::load(&root.join("data/rooms.json"));
+    inroom::articles::all(&study, &setups, &summary, &root.join("articles/figures"));
     eprintln!("articles/figures written");
 }
