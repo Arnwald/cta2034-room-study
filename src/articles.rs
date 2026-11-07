@@ -320,14 +320,81 @@ pub fn directivity_library(dir: &Path) {
     save_web(&svg, dir, "directivity-library");
 }
 
+/// The two ways of reading the colouration, for each crossover: the deviation of the room's
+/// averaged response (top) and of the floor and ceiling bounces taken one by one (bottom), in the
+/// living room, with the medians of the 300 rooms.
+pub fn methods(study: &Study, setups: &[crate::room::Setup], dir: &Path) {
+    use crate::analysis::{line_residual, local_anomaly, ANOMALY_BAND};
+    let kinds = KINDS;
+    let fs = study.freqs();
+    let living = study.named_index("living");
+    let (fp, per_layout) = crate::figures::path_spectra(setups);
+    let paths = &per_layout.iter().find(|(l, _)| l == "two_way").unwrap().1;
+    let w = crate::analysis::fit_weights(study, crate::analysis::Sp::Sphere, Which::Steady);
+    let band = |f: &[f64]| f.iter().cloned().filter(|x| *x >= ANOMALY_BAND.0 && *x <= ANOMALY_BAND.1).collect::<Vec<f64>>();
+    let mut axes = Vec::new();
+    for r in 0..2 {
+        for (c, k) in kinds.iter().enumerate() {
+            let ylabel = match (r, c) {
+                (0, 0) => "the room's averaged\nresponse (dB)",
+                (1, 0) => "floor and ceiling\nbounces (dB)",
+                _ => "",
+            };
+            let title = if r == 0 { kind_label(EN, *k) } else { String::new() };
+            let mut a = Axes::freq(EN, &title, (600.0, 8000.0), (-32.0, 6.0), ylabel);
+            a.x_ticks = vec![1000.0, 2000.0, 5000.0];
+            a.y_ticks = steps_of(-30.0, 0.0, 10.0);
+            a.show_xlabels = r == 1;
+            a.show_ylabels = c == 0;
+            a.title_size = 8.0;
+            axes.push(a);
+        }
+    }
+    let svg = render(W, 4.0, |root| {
+        let p = layout(root, 2, 4, &mut axes);
+        for (c, k) in kinds.iter().enumerate() {
+            let v = format!("two_way-upright-{}", k.name());
+            let col = kind_color(*k);
+            // Top: the living room's steady-state response, its deviation from the straight line.
+            let ax = &axes[c];
+            let mut ch = ax.build(&p[c]);
+            let (res, _) = line_residual(fs, &study.room_response(&v, Which::Steady, living), ANOMALY_BAND);
+            line(&mut ch, ax, &band(fs), &res, col, LW, Dash::Solid, None);
+            let rooms: Vec<f64> = study.random().map(|r| local_anomaly(fs, &study.room_response(&v, Which::Steady, r))).collect();
+            let med = crate::special::median(&rooms);
+            label(root, &format!("300 rooms: {med:.1} dB"), ch.backend_coord(&(650.0f64.log10(), -30.0)), 7.0, &INK, HPos::Left, VPos::Bottom, false);
+            // Bottom: the floor and ceiling bounces, each on its own.
+            let ax = &axes[4 + c];
+            let mut ch = ax.build(&p[4 + c]);
+            let per = &paths.iter().find(|(kk, _)| kk == k).unwrap().1;
+            for (path, dash) in [("floor", Dash::Solid), ("ceiling", Dash::Dashed)] {
+                let pw = &per.iter().find(|x| x.0 == path).unwrap().1;
+                let (res, _) = line_residual(&fp, pw, ANOMALY_BAND);
+                line(&mut ch, ax, &band(&fp), &res, col, LW, dash, None);
+            }
+            let vert = crate::figures::colouration_values(study, &v, w)[4];
+            label(root, &format!("300 rooms: {vert:.1} dB"), ch.backend_coord(&(650.0f64.log10(), -30.0)), 7.0, &INK, HPos::Left, VPos::Bottom, false);
+            if c == 3 {
+                let entries = vec![
+                    (Swatch::Line(INK, LW, Dash::Solid), "floor".to_string()),
+                    (Swatch::Line(INK, LW, Dash::Dashed), "ceiling".to_string()),
+                ];
+                crate::plot::legend_at(root, ch.backend_coord(&(2600.0f64.log10(), -9.0)), &entries, 1, 6.5, Ground::Plain);
+            }
+        }
+    });
+    save_web(&svg, dir, "two-methods");
+}
+
 /// Every figure of both articles: ``dir/standard-problems`` and ``dir/standard-proposal``.
-pub fn all(study: &Study, s: &Summary, dir: &Path) {
+pub fn all(study: &Study, setups: &[crate::room::Setup], s: &Summary, dir: &Path) {
     let a = dir.join("standard-problems");
     energy_shares(study, &a);
     averaging(&a);
     sound_power(study, &a);
     pir_vs_rooms(study, &a);
     directivity(&a);
+    methods(study, setups, &a);
     let b = dir.join("standard-proposal");
     directivity_library(&b);
     sp_library(s, &b);
