@@ -64,7 +64,10 @@ the averages rank LR2 as the smoothest Linkwitz-Riley crossover while its reflec
 coloured. Read path by path, a brickwall crossover removes about 60\,\% of the colouration of the floor
 and ceiling bounces (\ncolDomeRedVert\,\% with the plain dome, \ncolWgRedVert\,\% with the waveguide),
 leaving notches as deep but ten to thirteen times narrower; the in-room curve becomes smoother only when the
-drivers' directivities match at the crossover.
+drivers' directivities match at the crossover. Added with their phases at the listener's ears and
+smoothed by the auditory filters, the paths change the steady state little; in the early sound at a
+fixed point the comb of the floor and ceiling bounces outweighs any crossover's colouration, and the
+Linkwitz-Riley notch, which takes these reflections out near the crossover, removes their comb there.
 \end{abstract}
 
 \tableofcontents
@@ -655,6 +658,92 @@ on the Listening Window, where vertical lobing does not show; they show a slight
 the brickwall (\ncolDomeRedPir\ against \ncolDomeRedSteady\,\% with the plain dome, \ncolWgRedPir\ against
 \ncolWgRedSteady\,\% with the waveguide). The updated weights sit in between.
 
+\clearpage
+\subsection{Interference at the ears}
+\label{sec:interference}
+
+Every response so far adds the paths in power, as if each were heard on its own. At a fixed point the
+direct sound and the reflections add as pressures: a reflection delayed by $\tau$ digs a notch every
+$1/\tau$ into the response, a comb. To see what the comb does to the comparison, the direct sound and
+the images up to the third order were added with their phases at fourteen points: the two ears,
+17.5\,cm apart and without a head, of seven head positions (the reference one, 10\,cm to either side,
+10\,cm forward and back, 5\,cm up and down). Each image keeps the square root of its energy weight as a
+real, positive reflection factor, and the loudspeaker's response in the direction its path leaves in;
+the diffuse field is still added in energy. The ear does not resolve the fine comb of a late
+reflection, so every response is smoothed by the auditory filters of Glasberg and Moore
+\cite{glasberg1990}, rounded exponentials one ERB wide (\nerbCrossover\,Hz at the crossover, about a sixth
+of an octave), computed on a 4\,Hz grid, before its deviation within one octave of the crossover is
+taken. The images' energy matches the study's within $\ncohCheck$\,dB. An omnidirectional source in the
+same rooms shows the combs the rooms produce on their own.
+
+\begin{table}[t]
+\centering
+\caption{Deviation within one octave of the crossover (dB RMS, median of the 300 rooms) of the paths
+added in power at the reference point, and with their phases: at one point (median of the fourteen),
+at the two ears averaged in power, at the fourteen points averaged. Upright two-way; responses
+smoothed by the auditory filters.}
+\label{tab:coherent}
+\small
+\begin{tabular}{lrrrrrrrr}
+\toprule
+& \multicolumn{4}{c}{steady state} & \multicolumn{4}{c}{early sound} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+& power & point & ears & 14 pts & power & point & ears & 14 pts \\
+\midrule
+\rows{coherent}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{interference}
+\caption{Early sound in the living room of figure~\ref{fig:setup}, relative to an omnidirectional
+source: the paths added in power at the reference point (dashed), and with their phases at each of
+the fourteen points (thin) and averaged over them (thick); smoothed by the auditory filters.}
+\label{fig:interference}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{interference_summary}
+\caption{Deviation of the early sound within one octave of the crossover (median of the 300 rooms):
+the paths added in power, then with their phases at one point, at the two ears averaged, at the
+fourteen points averaged. Black lines: an omnidirectional source, the combs of the rooms alone.}
+\label{fig:interference-summary}
+\end{figure}
+
+\emph{In steady state the phases change little} (table~\ref{tab:coherent}). The diffuse field, added in
+energy, fills the combs: at one point the deviation grows by \ncohSteadyGainMin\ to \ncohSteadyGainMax\,dB,
+and the crossovers keep their order (plain dome: LR2 \ncohDomeLrTwoSteadyPoint, LR4
+\ncohDomeLrFourSteadyPoint, brickwall \ncohDomeFirSteadyPoint\,dB; waveguide: \ncohWgLrFourSteadyPoint\ with LR4
+against \ncohWgFirSteadyPoint\ with the brickwall). The omnidirectional source's combs leave
+\ncohOmniSteadyPoint\,dB.
+
+\emph{The early sound at one point is another matter} (figures~\ref{fig:interference}
+and~\ref{fig:interference-summary}). There the direct sound meets the floor and ceiling bounces,
+\ndelayFloor\ and \ndelayCeiling\,ms later in the median room: their combs, a few hundred hertz apart, are
+about as wide as the auditory filters and survive the smoothing. The omnidirectional source shows
+\ncohOmniEarlyPoint\,dB RMS within an octave of the crossover at one point, more than any crossover in
+power (\ncohDomeLrEightEarlyEnergy\,dB at most, LR8 with the plain dome). The loudspeakers fall in between,
+from \ncohDomeLrTwoEarlyPoint\ (LR2) to \ncohDomeFirEarlyPoint\,dB (brickwall) with the plain dome, from
+\ncohWgLrTwoEarlyPoint\ to \ncohWgFirEarlyPoint\,dB with the waveguide, and the brickwall comes last: the
+smoothest in power with the waveguide (\ncohWgFirEarlyEnergy\ against \ncohWgLrFourEarlyEnergy\,dB for LR4),
+it is the roughest at one point. The Linkwitz-Riley notch takes the floor and ceiling bounces out
+around the crossover, and their comb with them: in the living room the fourteen points close in on
+the energy sum around 2\,kHz with LR4, not with the brickwall, which leaves the reflections and their
+comb intact. Averaging the two ears or the fourteen points narrows the gaps without closing them
+(\ncohWgLrFourEarlySpatial\ against \ncohWgFirEarlySpatial\,dB over the fourteen points with the waveguide).
+
+What the comb measures is the room, not the crossover: a source without a crossover shows it
+everywhere, and a crossover that notches the reflections near its frequency removes it there, with
+part of the reflections' energy. Whether that sounds better is for listening tests to tell. A single
+reflection's comb colours the sound less for two ears than for one (binaural decoloration
+\cite{salomons1995}), and the reflections' own spectrum, which the colouration of the paths measures,
+is what the ear ascribes to the room. Interference thus leaves the steady-state picture as it is; at a
+fixed point it trades the crossover's colouration of the reflections for the comb those reflections
+cause.
+
 % =============================================================================================
 \section{Discussion}
 
@@ -708,8 +797,9 @@ The rooms are shoeboxes, with uniform absorption per surface except for the patc
 coefficients and a hybrid specular-diffuse model; real rooms have furniture in the paths, openings,
 irregular shapes. Their reverberation and their energy shares follow from the room constant and are
 not specific to this model, but the share of each first reflection depends on the materials at the
-reflection point. Paths are added in energy: comb filtering at a fixed point, and the room's modes
-below about 200\,Hz, are outside the study. The early sound is an energy sum too; hearing weighs
+reflection point. Paths are added in energy, except in section~\ref{sec:interference}, where the
+images meet with their phases at points without a head; the room's modes below about 200\,Hz are
+outside the study. The early sound is an energy sum too; hearing weighs
 reflections differently from their energy (binaural decoloration of lateral reflections, the
 salience of the floor bounce in the median plane \cite{bech1996,olive1989}), which no weighting of
 power responses captures. The colouration metrics are physical measures: a narrow notch is harder to
@@ -730,7 +820,10 @@ spread by about $0.1\,\mathrm{LW} + 0.9\,\mathrm{SP}$ with the sound power of th
 two orbits underestimate where drivers interfere. Any average, the room's included, fills the notches
 the crossover digs into each reflection, and flatters the low-slope crossovers most. Read path by path,
 a brickwall crossover removes about 60\,\% of the colouration of the floor and ceiling bounces; it gives a
-smoother in-room response only when the drivers' directivities match at the crossover.
+smoother in-room response only when the drivers' directivities match at the crossover. Added with their
+phases at the ears, the paths leave the steady state as it is; at a fixed point the early sound
+carries the comb of the floor and ceiling bounces, which a Linkwitz-Riley notch removes near the
+crossover along with the reflections, and which hearing with two ears attenuates.
 
 % =============================================================================================
 \begin{thebibliography}{99}
@@ -783,6 +876,12 @@ Soc. Am.}, vol.~99, no.~6, 1996.
 
 \bibitem{bucklein1981} R. B\"ucklein, ``The Audibility of Frequency Response Irregularities,'' \emph{J. Audio
 Eng. Soc.}, vol.~29, no.~3, pp.~126--131, 1981.
+
+\bibitem{glasberg1990} B. R. Glasberg, B. C. J. Moore, ``Derivation of auditory filter shapes from
+notched-noise data,'' \emph{Hearing Research}, vol.~47, pp.~103--138, 1990.
+
+\bibitem{salomons1995} A. M. Salomons, \emph{Coloration and Binaural Decoloration of Sound due to
+Reflections}, PhD thesis, Delft University of Technology, 1995.
 
 \end{thebibliography}
 
