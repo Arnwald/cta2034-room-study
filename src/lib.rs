@@ -14,6 +14,7 @@ pub mod cta2034;
 pub mod directivity;
 pub mod ensemble;
 pub mod figures;
+pub mod library_figures;
 pub mod mat;
 pub mod npy;
 pub mod plot;

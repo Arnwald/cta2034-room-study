@@ -72,7 +72,14 @@ la coloration des rebonds sur le sol et le plafond (\ncolDomeRedVert\,\% avec le
 se raccordent. Sommés avec leurs phases aux oreilles de l'auditeur et lissés par les filtres auditifs,
 les trajets changent peu le régime établi~; dans le son précoce en un point fixe, le peigne des rebonds
 sur le sol et le plafond l'emporte sur la coloration de tous les filtres, et le creux du Linkwitz-Riley,
-qui retire ces réflexions près du raccordement, y retire aussi leur peigne.
+qui retire ces réflexions près du raccordement, y retire aussi leur peigne. Sur sept enceintes simulées
+(deux voies, coaxiale, MTM, moniteur trois voies horizontal, deux colonnes), les deux orbites suffisent à
+une norme conforme aux pièces~: reconstruites haut-parleur par haut-parleur, elles donnent la puissance à
+\nlibSpWaysMax\,dB RMS près, $0,1\,\mathrm{LW} + 0,9\,\mathrm{SP}$ prédit la réponse dans la pièce à
+\nlibPropSteadyMin--\nlibPropSteadyMax\,dB près quand la PIR s'en écarte de \nlibPirSteadyMin--\nlibPirSteadyMax\,dB,
+et la rugosité des directions de premières réflexions, lues une à une, suit la coloration des réflexions
+dans les pièces (corrélation de \nlibCorrIndex) quand les courbes moyennées ne la suivent pas (\nlibCorrRoom\
+à \nlibCorrPir).
 \end{abstract}
 
 \tableofcontents
@@ -777,6 +784,154 @@ Les interférences laissent donc intact le tableau du régime établi~; en un po
 coloration des réflexions par le filtre contre le peigne que ces réflexions provoquent.
 
 % =============================================================================================
+\clearpage
+\section{Une norme à deux orbites fidèle aux pièces}
+\label{sec:proposal}
+
+Ce qui précède dessine une norme qui garde les deux orbites, que tout laboratoire sait mesurer, mais
+les lit autrement~: une puissance qui voit les lobes tombés entre les orbites, des poids conformes à
+l'énergie reçue, et la coloration des réflexions lue direction par direction. Pour vérifier que cela
+vaut au-delà d'une seule deux voies, cinq enceintes rejoignent les deux de l'étude
+(tableau~\ref{tab:library})~: une deux voies coaxiale, un cône de 8~pouces qui guide un dôme de 1~pouce
+placé en son centre~; une MTM, un dôme de 1,1~pouce entre deux cônes de 5,25~pouces distants de
+230\,mm~; le moniteur trois voies horizontal de l'étude de la table tournante, son boomer de 8~pouces à
+côté d'un médium à dôme de 3~pouces surmonté du tweeter~; une colonne trois voies, deux boomers de
+6,5~pouces, un médium de 4~pouces et le tweeter~; une colonne quatre voies, des cônes de 8, 6,5 et
+4~pouces et le tweeter. Les colonnes reposent sur le sol, les autres sur des pieds. Chacune reçoit les
+quatre filtres~; à trois ou quatre voies, chaque voie située au-dessus d'un raccordement en reçoit le
+passe-haut et chaque voie située plus bas son passe-tout, de sorte que les voies se somment en un
+passe-tout dans l'axe.
+
+\begin{table}[t]
+\centering
+\caption{La bibliothèque~: caisson, nombre de haut-parleurs, raccordements, placement~; le modèle en
+champ lointain face aux trajets pris depuis chaque haut-parleur (écart RMS médian de la réponse dans la
+pièce, dB, régime établi et son précoce)~; l'erreur de la puissance sur deux orbites de la CTA-2034 (pire
+filtre, dB RMS).}
+\label{tab:library}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llrlrrrr}
+\toprule
+& caisson (mm) & h.-p. & raccordements (Hz) & & \multicolumn{2}{c}{champ lointain} & SP \\
+& & & & & établi & précoce & deux orbites \\
+\midrule
+\rows{library}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{Des trajets depuis chaque haut-parleur.} Une colonne n'est pas petite à la distance d'écoute~:
+son boomer, à quelques dizaines de centimètres du sol, envoie son rebond sur le sol sous un angle bien
+plus plongeant que le tweeter. Chaque trajet est donc pris depuis la position de chaque haut-parleur,
+avec sa propre direction, sa longueur et sa réflexion, les haut-parleurs s'ajoutant avec leurs phases
+le long du trajet. La réduction en champ lointain de l'étude s'en écarte de \nlibDomeFarSteady\,dB RMS avec
+la deux voies, de \nlibTowerFourFarSteady\,dB en régime établi et \nlibTowerFourFarEarly\,dB dans le son
+précoce avec la colonne quatre voies~: une norme fondée sur le champ lointain décrit bien les enceintes
+compactes, moins bien les colonnes, quels que soient ses poids.
+
+\emph{La rugosité.} Les raccordements tombent désormais n'importe où entre 250\,Hz et 3,2\,kHz. La mesure
+de coloration devient la rugosité d'une réponse~: son écart RMS, de 200\,Hz à 10\,kHz, à elle-même lissée
+sur une octave. Les pentes larges et les marches ne comptent pas~; les creux et les pics plus étroits
+qu'une octave comptent, où qu'ils soient.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{library_sp}
+\caption{Puissance sur deux orbites face à la sphère, pire des quatre filtres~: poids de la CTA-2034,
+quatre demi-orbites pondérées par l'aire de leur anneau de sphère, et sphère reconstruite haut-parleur
+par haut-parleur à partir des orbites de chacun, avec la phase.}
+\label{fig:library-sp}
+\end{figure}
+
+\subsection{La puissance}
+
+La puissance sur deux orbites de la CTA-2034 manque celle de la sphère de \nlibSpCtaMin\ à
+\nlibSpCtaMax\,dB RMS pour le pire filtre de chaque enceinte, et jusqu'à \nlibSpCtaPeak\,dB (la MTM,
+figure~\ref{fig:library-sp}). Pondérer les quatre demi-orbites par l'aire de leur anneau de sphère ne
+corrige que la coaxiale (\nlibCoaxSpRing\ contre \nlibCoaxSpCta\,dB)~: ailleurs, l'erreur vient des lobes,
+qui tombent entre les orbites. Reconstruire la sphère haut-parleur par haut-parleur la supprime~: les
+orbites de chaque haut-parleur, mesurées avec la phase, sont rapportées à son propre centre, interpolées
+sur la sphère entre les quatre demi-orbites (linéairement selon l'angle à l'axe, par $\cos^2$ et $\sin^2$
+de l'angle autour de lui), puis les haut-parleurs sont sommés avec leurs positions. L'erreur tombe à
+\nlibSpWaysMin--\nlibSpWaysMax\,dB RMS, \nlibSpWaysPeak\,dB au plus. Il faut pouvoir alimenter les voies
+séparément, ce que permet toute enceinte active ou à DSP, et tout fabricant.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{library_prediction}
+\caption{Prédiction des 150 pièces de test (écart RMS médian, 300\,Hz à 16\,kHz, médiane des quatre
+filtres) par la PIR de la CTA-2034 et par les poids proposés.}
+\label{fig:library-prediction}
+\end{figure}
+
+\subsection{Les courbes dans la pièce}
+
+Ajusté sur les 150 pièces d'apprentissage des sept enceintes, avec la puissance reconstruite
+haut-parleur par haut-parleur, le régime établi vaut $\nlibSteadyLw\,\mathrm{LW} \nlibSteadyErSigned\,\mathrm{ER} +
+\nlibSteadySp\,\mathrm{SP}$~; retirer tour à tour chaque enceinte de l'ajustement laisse le poids de la LW
+entre \nlibLofoLwMin\ et \nlibLofoLwMax\ et celui de la SP entre \nlibLofoSpMin\ et \nlibLofoSpMax. Arrondis à
+$0,1\,\mathrm{LW} + 0,9\,\mathrm{SP}$, les poids prédisent les pièces de test à \nlibPropSteadyMin--\nlibPropSteadyMax\,dB
+RMS médian près (écart moyen d'au plus \nlibPropSteadyBias\,dB), là où la PIR s'écarte de
+\nlibPirSteadyMin--\nlibPirSteadyMax\,dB (jusqu'à \nlibPirSteadyBias\,dB, figure~\ref{fig:library-prediction}).
+Avec la puissance de la CTA-2034, les mêmes poids donnent \nlibPropSteadyCtaSpMin--\nlibPropSteadyCtaSpMax\,dB,
+et les poids de la PIR avec la puissance reconstruite \nlibPirWeightsWaysSpMin--\nlibPirWeightsWaysSpMax\,dB~:
+les poids comptent le plus, la puissance ensuite, pour les enceintes à lobes. Pour le son précoce,
+l'ajustement donne $\nlibEarlyLw\,\mathrm{LW} \nlibEarlyErSigned\,\mathrm{ER} + \nlibEarlySp\,\mathrm{SP}$~; arrondi à
+$0,4\,\mathrm{LW} + 0,4\,\mathrm{ER} + 0,2\,\mathrm{SP}$, il prédit les pièces à \nlibPropEarlyMin--\nlibPropEarlyMax\,dB
+près, la PIR à \nlibPirEarlyMin--\nlibPirEarlyMax\,dB.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{library_index}
+\caption{La coloration des premières réflexions dans les pièces (rugosité de chaque trajet, pondérée par
+son énergie, médiane des 300 pièces) face à son estimation lue sur les orbites direction par direction
+(à gauche) et face à la rugosité de la courbe ER (à droite)~: sept enceintes, quatre filtres chacune.}
+\label{fig:library-index}
+\end{figure}
+
+\subsection{La coloration des réflexions}
+
+L'indice des orbites garde les directions de premières réflexions de la norme, mais ne moyenne pas leurs
+réponses. Il prend la rugosité de chacune, pondérée par la part de l'énergie des premières réflexions
+qu'apporte son rebond pour une source omnidirectionnelle dans les pièces (sol \nlibShareFloor\,\%, plafond
+\nlibShareCeiling\,\%, murs latéraux \nlibShareSide\,\%, mur avant \nlibShareFront\,\%, mur arrière
+\nlibShareRear\,\%, répartie entre les directions du rebond) et par la puissance de l'enceinte dans cette
+direction. Sur les 28 variantes, il suit la coloration des premières réflexions dans les pièces avec une
+corrélation de \nlibCorrIndex, et celle des rebonds sur le sol et le plafond, lue sur les seules directions
+verticales, avec \nlibCorrIndexVert. La rugosité de la courbe ER n'y est corrélée qu'à \nlibCorrEr, celle de
+la PIR à \nlibCorrPir, celle de la réponse moyenne des pièces elles-mêmes à \nlibCorrRoom\
+(figure~\ref{fig:library-index}).
+
+Les moyennes continuent de flatter les faibles pentes~: avec la deux voies à dôme nu, la rugosité de la
+PIR vaut \nlibDomeLrTwoPir\,dB avec le LR2 et \nlibDomeFirPir\,dB avec le brickwall, alors que les premières
+réflexions portent \nlibDomeLrTwoRefl\ et \nlibDomeFirRefl\,dB. Toutes les enceintes ne gagnent pas à un
+brickwall, et l'indice le voit. Dans la MTM, les deux boomers, distants de 230\,mm, forment des lobes entre
+eux sous le raccordement, et un filtre raide les laisse jouer jusqu'à lui~: sur tous les trajets, le
+brickwall donne \nlibMtmFirAll\,dB contre \nlibMtmLrFourAll\ avec le LR4, même si ses rebonds sur le sol et le
+plafond y gagnent (\nlibMtmFirVert\ contre \nlibMtmLrFourVert). Dans le moniteur trois voies, le médium à dôme
+de 3~pouces devient directif au-dessus de 2\,kHz quand le tweeter ne l'est pas, et le brickwall change le
+raccordement en marche de directivité~: \nlibMonitorFirRefl\ contre \nlibMonitorLrFourRefl\,dB pour les
+premières réflexions.
+
+\subsection{La proposition}
+
+\begin{itemize}
+\item Mesurer les deux orbites de la CTA-2034, voie par voie et avec la phase quand les voies peuvent
+être alimentées séparément.
+\item Reconstruire la puissance sur la sphère haut-parleur par haut-parleur~; à défaut, garder
+l'estimation de la CTA-2034 et le dire.
+\item Prédire la réponse dans la pièce en régime établi par $0,1\,\mathrm{LW} + 0,9\,\mathrm{SP}$, le son précoce
+par $0,4\,\mathrm{LW} + 0,4\,\mathrm{ER} + 0,2\,\mathrm{SP}$.
+\item Donner la coloration des réflexions par l'indice des orbites, avec les réponses des directions de
+premières réflexions elles-mêmes plutôt que leur seule moyenne.
+\end{itemize}
+La bibliothèque est simulée, avec une seule géométrie par famille, la directivité en champ lointain de
+chaque haut-parleur sur son baffle et des pièces rectangulaires~; elle montre que les deux orbites
+contiennent l'information, pas que ces chiffres sont définitifs. Des enceintes mesurées et des tests
+d'écoute le diraient.
+
+% =============================================================================================
 \section{Discussion}
 
 \subsection{Les trois objections}
@@ -817,9 +972,11 @@ sphériques, plutôt que sur deux orbites~;
 \item pour la réponse dans la pièce en régime établi, environ $0,1\,\mathrm{LW} + 0,9\,\mathrm{SP}$~: la
 pièce intègre surtout la puissance acoustique, le son direct ajoutant un peu de poids vers l'avant~;
 \item pour le son précoce, qui porte les réflexions entendues avec le son direct, environ
-$0,4\,\mathrm{LW} + 0,5\,\mathrm{ER} + 0,1\,\mathrm{SP}$.
+$0,4\,\mathrm{LW} + 0,4\,\mathrm{ER} + 0,2\,\mathrm{SP}$ sur les sept enceintes de la
+section~\ref{sec:proposal} (environ $0,4\,\mathrm{LW} + 0,5\,\mathrm{ER} + 0,1\,\mathrm{SP}$ pour la seule deux voies).
 \end{itemize}
-Ajusté sur l'énergie reçue, le premier jeu de poids prédit les pièces à leur propre dispersion près. Il
+Ajusté sur l'énergie reçue, le premier jeu de poids prédit les pièces à leur propre dispersion près, et
+sept enceintes de cinq familles le conservent (section~\ref{sec:proposal}). Il
 ne défait pas la moyenne pour autant~: aucune moyenne pondérée de réponses en puissance ne montre le
 creux que porte une réflexion isolée. Celui-ci se lit direction par direction, sur les cartes polaires
 ou avec une mesure comme la coloration des trajets utilisée ici, dans les directions où partent les
@@ -839,8 +996,8 @@ autrement que par leur énergie (décoloration binaurale des réflexions latéra
 sol dans le plan médian \cite{bech1996,olive1989}), ce qu'aucune pondération de réponses en puissance ne
 saisit. Les mesures de coloration sont physiques~: un creux étroit s'entend moins qu'un creux large de
 même profondeur \cite{bucklein1981}, et l'écart RMS n'en tient compte qu'à travers sa largeur.
-L'enceinte est une seule deux voies bibliothèque, en deux versions~; une trois voies, une cardioïde, une
-colonne ou une distance d'écoute plus grande changeraient les chiffres, pas la méthode. Enfin, l'étude
+L'enceinte principale est une seule deux voies bibliothèque, en deux versions~; la bibliothèque de la
+section~\ref{sec:proposal} y ajoute cinq familles, une géométrie chacune, et aucune cardioïde. Enfin, l'étude
 part de la CTA-2034-A~; sa révision B n'a pas été vérifiée.
 
 % =============================================================================================
@@ -859,7 +1016,10 @@ flatte d'abord les filtres à faible pente. Lu trajet par trajet, un filtre bric
 la pièce que si les directivités des haut-parleurs se raccordent. Sommés avec leurs phases aux
 oreilles, les trajets laissent le régime établi tel quel~; en un point fixe, le son précoce porte le
 peigne des rebonds sur le sol et le plafond, qu'un creux de Linkwitz-Riley retire près du raccordement
-avec les réflexions, et qu'une écoute à deux oreilles atténue.
+avec les réflexions, et qu'une écoute à deux oreilles atténue. Sept
+enceintes de cinq familles confirment que les deux orbites peuvent porter une meilleure norme~: la
+puissance reconstruite haut-parleur par haut-parleur, $0,1\,\mathrm{LW} + 0,9\,\mathrm{SP}$ pour le régime
+établi, et la coloration des réflexions lue direction par direction.
 
 % =============================================================================================
 \begin{thebibliography}{99}

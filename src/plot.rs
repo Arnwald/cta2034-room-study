@@ -962,6 +962,12 @@ pub fn colour_bar_width(w: i32, ticks: &[f64], text: &str, size: f64, lang: Lang
     w + label_dist() + tw.ceil() as i32 + pt(4.0) + (text.lines().count() as f64 * size * PT * 1.2).ceil() as i32 + pt(2.0)
 }
 
+/// Values from ``lo`` to ``hi`` every ``step``.
+pub fn steps_of(lo: f64, hi: f64, step: f64) -> Vec<f64> {
+    let n = ((hi - lo) / step + 1e-9).floor() as usize;
+    (0..=n).map(|i| lo + i as f64 * step).collect()
+}
+
 /// Text at a data position of a chart.
 pub fn text<DB: DrawingBackend>(chart: &mut ChartContext<'_, DB, Coord>, ax: &Axes, x: f64, y: f64, s: &str, style: TextStyle) {
     chart.draw_series(std::iter::once(Text::new(s.to_string(), (ax.cx(x), y), style))).unwrap();

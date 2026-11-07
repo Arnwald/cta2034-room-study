@@ -240,3 +240,155 @@ pub fn correlation(x: &[f64], y: &[f64]) -> f64 {
     let syy: f64 = y.iter().map(|b| (b - my).powi(2)).sum();
     sxy / (sxx * syy).sqrt()
 }
+
+/// The proposed in-room curves: steady state, and the early sound (direct sound and first
+/// reflections), as weights of LW, ER and SP (rebuilt driver by driver).
+pub const PROPOSED_STEADY: [f64; 3] = [0.1, 0.0, 0.9];
+pub const PROPOSED_EARLY: [f64; 3] = [0.4, 0.4, 0.2];
+
+/// One crossover of one loudspeaker.
+#[derive(Clone, Debug)]
+pub struct KindSummary {
+    pub variant: String,
+    /// The rooms' colouration of the paths (roughness, median of the random rooms): every path,
+    /// the first reflections, the floor and ceiling bounces.
+    pub rooms: [f64; 3],
+    /// The colouration read on the orbits: every bounce, the floor and ceiling only.
+    pub index: [f64; 2],
+    /// Roughness of the averaged curves: CTA PIR, ER, the rooms' mean response.
+    pub curves: [f64; 3],
+}
+
+/// One loudspeaker of the library.
+#[derive(Clone, Debug)]
+pub struct FamilySummary {
+    pub name: String,
+    /// Sound power from two orbits against the sphere (dB), worst of the four crossovers: RMS and
+    /// largest error with CTA-2034's weights, the rings, driver by driver.
+    pub sp_rms: [f64; 3],
+    pub sp_max: [f64; 3],
+    /// The far-field model against the paths from each driver (median RMS difference, dB, median of
+    /// the four crossovers): steady state, early sound.
+    pub far: [f64; 2],
+    /// Prediction of the test rooms (median RMS error, dB, median of the four crossovers), steady
+    /// state: CTA PIR, the proposed weights with CTA-2034's sound power, with the sound power rebuilt
+    /// driver by driver.
+    pub steady: [f64; 3],
+    /// Early sound: CTA PIR, the proposed early weights.
+    pub early: [f64; 2],
+    pub kinds: Vec<KindSummary>,
+}
+
+/// Everything the report and the articles quote about the library.
+#[derive(Clone, Debug)]
+pub struct Summary {
+    pub families: Vec<FamilySummary>,
+    /// Shares of the first reflections' energy: floor, ceiling, side walls, front, rear.
+    pub shares: [f64; 5],
+    /// Weights fitted on the training rooms of every family (sound power driver by driver).
+    pub steady_fit: [f64; 3],
+    pub early_fit: [f64; 3],
+    /// Range of the steady-state LW and SP weights fitted with each family left out.
+    pub lofo_lw: (f64, f64),
+    pub lofo_sp: (f64, f64),
+    /// Ranges over the 28 variants of the median RMS error of the test rooms (dB), and the largest
+    /// mean error: CTA PIR, proposed (driver by driver), proposed with CTA-2034's sound power, the
+    /// PIR's weights with the sound power rebuilt; early: CTA PIR, proposed.
+    pub errors: Vec<(String, f64, f64, f64)>,
+    /// Correlation with the rooms' colouration of the first reflections: the orbit index, the
+    /// roughness of the ER curve, of the PIR, of the rooms' mean response; and the orbit index
+    /// of the floor and ceiling against the rooms' floor and ceiling bounces.
+    pub corr: [f64; 5],
+}
+
+fn medianv(v: &[f64]) -> f64 {
+    median(v)
+}
+
+pub fn summary(lib: &Library) -> Summary {
+    let all: Vec<usize> = (0..lib.layouts.len()).collect();
+    let shares = bounce_shares(&lib.studies[0]);
+    let steady_fit = fit(lib, &all, SpFrom::Ways, 0..150, Which::Steady);
+    let early_fit = fit(lib, &all, SpFrom::Ways, 0..150, Which::Early);
+    let lofo: Vec<[f64; 3]> = all
+        .iter()
+        .map(|&li| {
+            let others: Vec<usize> = all.iter().cloned().filter(|&x| x != li).collect();
+            fit(lib, &others, SpFrom::Ways, 0..150, Which::Steady)
+        })
+        .collect();
+    let range = |k: usize| (lofo.iter().map(|w| w[k]).fold(f64::MAX, f64::min), lofo.iter().map(|w| w[k]).fold(f64::MIN, f64::max));
+    let predictions: [(&str, Which, Option<[f64; 3]>, SpFrom); 6] = [
+        ("pirSteady", Which::Steady, None, SpFrom::Cta),
+        ("propSteady", Which::Steady, Some(PROPOSED_STEADY), SpFrom::Ways),
+        ("propSteadyCtaSp", Which::Steady, Some(PROPOSED_STEADY), SpFrom::Cta),
+        ("pirWeightsWaysSp", Which::Steady, Some(cta2034::PIR_WEIGHTS), SpFrom::Ways),
+        ("pirEarly", Which::Early, None, SpFrom::Cta),
+        ("propEarly", Which::Early, Some(PROPOSED_EARLY), SpFrom::Ways),
+    ];
+    let mut per: Vec<Vec<Vec<f64>>> = vec![vec![Vec::new(); lib.layouts.len()]; predictions.len()];
+    let mut errors = Vec::new();
+    for (pi, (name, which, w, from)) in predictions.iter().enumerate() {
+        let (mut lo, mut hi, mut bias) = (f64::MAX, 0.0f64, 0.0f64);
+        for (li, s) in lib.studies.iter().enumerate() {
+            for v in s.variants() {
+                let c = s.curves(&v);
+                let p = match w {
+                    None => c.pir.clone(),
+                    Some(w) => curve(&c, &sound_power(s, &v, *from), *w),
+                };
+                let (rms, b) = prediction_error(s, &v, &p, s.test(), *which);
+                per[pi][li].push(rms);
+                lo = lo.min(rms);
+                hi = hi.max(rms);
+                bias = bias.max(b);
+            }
+        }
+        errors.push((name.to_string(), lo, hi, bias));
+    }
+    let mut families = Vec::new();
+    let mut rooms_refl = Vec::new();
+    let mut cols: [Vec<f64>; 6] = Default::default();
+    for (li, s) in lib.studies.iter().enumerate() {
+        let vs = s.variants();
+        let sp: Vec<[(f64, f64); 3]> = vs.iter().map(|v| [SpFrom::Cta, SpFrom::Ring, SpFrom::Ways].map(|f| sp_error(s, v, f))).collect();
+        let worst = |k: usize, max: bool| sp.iter().map(|e| if max { e[k].1 } else { e[k].0 }).fold(0.0f64, f64::max);
+        let kinds: Vec<KindSummary> = vs
+            .iter()
+            .map(|v| {
+                let c = s.curves(v);
+                let k = KindSummary {
+                    variant: v.clone(),
+                    rooms: [Group::Steady, Group::Reflections, Group::Vertical].map(|g| room_colouration(s, v, g)),
+                    index: [orbit_index(s, v, &shares, None), orbit_index(s, v, &shares, Some(&[0, 1]))],
+                    curves: [curve_roughness(s, &c.pir), curve_roughness(s, &c.er), curve_roughness(s, &s.room_response_mean(v))],
+                };
+                rooms_refl.push(k.rooms[1]);
+                cols[0].push(k.index[0]);
+                cols[1].push(k.curves[1]);
+                cols[2].push(k.curves[0]);
+                cols[3].push(k.curves[2]);
+                cols[4].push(k.index[1]);
+                cols[5].push(k.rooms[2]);
+                k
+            })
+            .collect();
+        families.push(FamilySummary {
+            name: lib.layouts[li].name.clone(),
+            sp_rms: [worst(0, false), worst(1, false), worst(2, false)],
+            sp_max: [worst(0, true), worst(1, true), worst(2, true)],
+            far: [Which::Steady, Which::Early].map(|w| medianv(&vs.iter().map(|v| far_field_error(s, v, w)).collect::<Vec<_>>())),
+            steady: [medianv(&per[0][li]), medianv(&per[2][li]), medianv(&per[1][li])],
+            early: [medianv(&per[4][li]), medianv(&per[5][li])],
+            kinds,
+        });
+    }
+    let corr = [
+        correlation(&cols[0], &rooms_refl),
+        correlation(&cols[1], &rooms_refl),
+        correlation(&cols[2], &rooms_refl),
+        correlation(&cols[3], &rooms_refl),
+        correlation(&cols[4], &cols[5]),
+    ];
+    Summary { families, shares, steady_fit, early_fit, lofo_lw: range(0), lofo_sp: range(2), errors, corr }
+}

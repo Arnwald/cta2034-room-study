@@ -67,7 +67,13 @@ leaving notches as deep but ten to thirteen times narrower; the in-room curve be
 drivers' directivities match at the crossover. Added with their phases at the listener's ears and
 smoothed by the auditory filters, the paths change the steady state little; in the early sound at a
 fixed point the comb of the floor and ceiling bounces outweighs any crossover's colouration, and the
-Linkwitz-Riley notch, which takes these reflections out near the crossover, removes their comb there.
+Linkwitz-Riley notch, which takes these reflections out near the crossover, removes their comb there. On seven simulated loudspeakers (two-ways, a coaxial, an MTM, a horizontal
+three-way monitor, two towers), the two orbits are enough for a standard that matches the rooms: rebuilt
+driver by driver they give the sound power within \nlibSpWaysMax\,dB RMS, $0.1\,\mathrm{LW} + 0.9\,\mathrm{SP}$
+predicts the in-room response within \nlibPropSteadyMin--\nlibPropSteadyMax\,dB where the PIR is
+\nlibPirSteadyMin--\nlibPirSteadyMax\,dB off, and the roughness of the early-reflection directions read one
+by one follows the rooms' colouration of the reflections (correlation \nlibCorrIndex) where the averaged
+curves do not (\nlibCorrRoom\ to \nlibCorrPir).
 \end{abstract}
 
 \tableofcontents
@@ -745,6 +751,145 @@ fixed point it trades the crossover's colouration of the reflections for the com
 cause.
 
 % =============================================================================================
+\clearpage
+\section{A two-orbit standard faithful to the rooms}
+\label{sec:proposal}
+
+What precedes points to a standard that keeps the two orbits, which any laboratory can measure, but
+reads them differently: a sound power that sees the lobing between the orbits, weights that match the
+energy received, and the colouration of the reflections read direction by direction. To check that
+this holds beyond one two-way, five more loudspeakers join the two of the study (table~\ref{tab:library}):
+a coaxial two-way, an 8-inch cone guiding a 1-inch dome at its centre; a two-way MTM, a 1.1-inch dome
+between two 5.25-inch cones 230\,mm apart; the horizontal three-way monitor of the turntable study,
+its 8-inch woofer beside a 3-inch dome midrange and the tweeter stacked above it; a three-way tower,
+two 6.5-inch woofers, a 4-inch midrange and the tweeter; a four-way tower, 8-inch, 6.5-inch and 4-inch
+cones and the tweeter. The towers stand on the floor, the others on stands. Each gets the four
+crossovers; with three or four ways every way above a crossover gets its high-pass and every way
+further below its all-pass, so that the ways sum to an all-pass on the axis.
+
+\begin{table}[t]
+\centering
+\caption{The library: cabinet, number of drivers, crossovers, placement; the far-field model against
+the paths taken from each driver (median RMS difference of the in-room response, dB, steady state and
+early sound); the error of CTA-2034's two-orbit sound power (worst crossover, dB RMS).}
+\label{tab:library}
+\small
+\begin{tabular}{llrlrrrr}
+\toprule
+& cabinet (mm) & drivers & crossovers (Hz) & & \multicolumn{2}{c}{far field} & SP \\
+& & & & & steady & early & two orbits \\
+\midrule
+\rows{library}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{Paths from each driver.} A tower is not small at the listening distance: its woofer, a few
+tenths of a metre above the floor, sends its floor bounce down at a much steeper angle than its
+tweeter does. Every path is therefore taken from each driver's own position, with its own direction,
+length and reflection, the drivers adding with their phases along it. The far-field reduction of the
+study differs from it by \nlibDomeFarSteady\,dB RMS with the two-way, by \nlibTowerFourFarSteady\,dB in steady
+state and \nlibTowerFourFarEarly\,dB in the early sound with the four-way tower: a standard built on the far
+field describes compact loudspeakers well and towers less well, whatever its weights.
+
+\emph{Roughness.} The crossovers now lie anywhere from 250\,Hz to 3.2\,kHz. The colouration measure
+becomes the roughness of a response: its RMS deviation, from 200\,Hz to 10\,kHz, from itself smoothed
+over one octave. Broad tilts and steps do not count; dips and peaks narrower than an octave do,
+wherever they are.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{library_sp}
+\caption{Sound power from the two orbits against the sphere, worst of the four crossovers: CTA-2034's
+weights, the four half-orbits weighted by the area of their ring of the sphere, and the sphere rebuilt
+driver by driver from each driver's own orbits with phase.}
+\label{fig:library-sp}
+\end{figure}
+
+\subsection{Sound power}
+
+CTA-2034's two-orbit sound power misses the sphere's by \nlibSpCtaMin\ to \nlibSpCtaMax\,dB RMS for the
+worst crossover of each loudspeaker, by up to \nlibSpCtaPeak\,dB (the MTM, figure~\ref{fig:library-sp}).
+Weighting the four half-orbits by the area of their ring of the sphere fixes the coaxial only
+(\nlibCoaxSpRing\ against \nlibCoaxSpCta\,dB): elsewhere the error comes from the lobing, which falls
+between the orbits. Rebuilding the sphere driver by driver removes it: each driver's orbits, measured
+with phase, are taken relative to its own centre and interpolated over the sphere between the four
+half-orbits (linearly in the angle from the axis, by $\cos^2$ and $\sin^2$ of the angle around it),
+and the drivers are added with their positions. The error falls to \nlibSpWaysMin--\nlibSpWaysMax\,dB
+RMS, \nlibSpWaysPeak\,dB at most. It requires driving the ways separately, which any active or DSP
+loudspeaker allows, and any manufacturer.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{library_prediction}
+\caption{Prediction of the 150 test rooms (median RMS error, 300\,Hz to 16\,kHz, median of the four
+crossovers) by the CTA-2034 PIR and by the proposed weights.}
+\label{fig:library-prediction}
+\end{figure}
+
+\subsection{In-room curves}
+
+Fitted on the 150 training rooms of the seven loudspeakers, with the sound power rebuilt driver by
+driver, the steady state is $\nlibSteadyLw\,\mathrm{LW} \nlibSteadyErSigned\,\mathrm{ER} + \nlibSteadySp\,\mathrm{SP}$;
+leaving each loudspeaker out of the fit in turn keeps the LW weight within \nlibLofoLwMin--\nlibLofoLwMax\ and
+the SP weight within \nlibLofoSpMin--\nlibLofoSpMax. Rounded to $0.1\,\mathrm{LW} + 0.9\,\mathrm{SP}$, the
+weights predict the test rooms within \nlibPropSteadyMin--\nlibPropSteadyMax\,dB median RMS (largest mean
+error \nlibPropSteadyBias\,dB), where the PIR is \nlibPirSteadyMin--\nlibPirSteadyMax\,dB off (up to
+\nlibPirSteadyBias\,dB, figure~\ref{fig:library-prediction}). With CTA-2034's sound power the same weights
+give \nlibPropSteadyCtaSpMin--\nlibPropSteadyCtaSpMax\,dB, the PIR's weights with the rebuilt sound power
+\nlibPirWeightsWaysSpMin--\nlibPirWeightsWaysSpMax\,dB: the weights matter most, the sound power next, for
+the lobing loudspeakers. For the early sound the fit gives $\nlibEarlyLw\,\mathrm{LW} \nlibEarlyErSigned\,\mathrm{ER}
++ \nlibEarlySp\,\mathrm{SP}$; rounded to $0.4\,\mathrm{LW} + 0.4\,\mathrm{ER} + 0.2\,\mathrm{SP}$ it predicts the
+rooms within \nlibPropEarlyMin--\nlibPropEarlyMax\,dB, the PIR \nlibPirEarlyMin--\nlibPirEarlyMax\,dB.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{library_index}
+\caption{The rooms' colouration of the first reflections (roughness of each path, weighted by its
+energy, median of the 300 rooms) against its estimate read on the orbits direction by direction
+(left) and against the roughness of the ER curve (right): seven loudspeakers, four crossovers each.}
+\label{fig:library-index}
+\end{figure}
+
+\subsection{The colouration of the reflections}
+
+The orbit index keeps the standard's own early-reflection directions but does not average their
+responses. It takes the roughness of each of them, weighted by the share of the first reflections'
+energy its bounce brings for an omnidirectional source in the rooms (floor \nlibShareFloor\,\%, ceiling
+\nlibShareCeiling\,\%, side walls \nlibShareSide\,\%, front wall \nlibShareFront\,\%, rear wall
+\nlibShareRear\,\%, spread over the bounce's directions) and by the loudspeaker's output in that direction.
+Across the 28 variants it follows the rooms' colouration of the first reflections with a correlation
+of \nlibCorrIndex, and that of the floor and ceiling bounces, read on the vertical directions alone, with
+\nlibCorrIndexVert. The roughness of the ER curve correlates with it at \nlibCorrEr, that of the PIR at
+\nlibCorrPir, that of the rooms' own mean response at \nlibCorrRoom\ (figure~\ref{fig:library-index}).
+
+The averages keep flattering the low slopes: with the plain-dome two-way, the PIR's roughness is
+\nlibDomeLrTwoPir\,dB with LR2 and \nlibDomeFirPir\,dB with the brickwall, while the first reflections carry
+\nlibDomeLrTwoRefl\ and \nlibDomeFirRefl\,dB. Not every loudspeaker gains from a brickwall, and the index sees
+it. In the MTM the two woofers, 230\,mm apart, lobe between themselves below the crossover, and a steep
+crossover lets them play up to it: over every path the brickwall gives \nlibMtmFirAll\,dB against
+\nlibMtmLrFourAll\ with LR4, though its floor and ceiling bounces gain (\nlibMtmFirVert\ against
+\nlibMtmLrFourVert). In the three-way monitor the 3-inch midrange dome beams above 2\,kHz while the tweeter
+does not, and the brickwall turns the crossover into a step of directivity: \nlibMonitorFirRefl\ against
+\nlibMonitorLrFourRefl\,dB for the first reflections.
+
+\subsection{The proposal}
+
+\begin{itemize}
+\item Measure the two orbits of CTA-2034, way by way and with phase where the ways can be driven
+separately.
+\item Rebuild the sound power over the sphere driver by driver; otherwise keep the CTA-2034 estimate and
+say so.
+\item Predict the steady-state in-room response by $0.1\,\mathrm{LW} + 0.9\,\mathrm{SP}$, the early sound by
+$0.4\,\mathrm{LW} + 0.4\,\mathrm{ER} + 0.2\,\mathrm{SP}$.
+\item Give the colouration of the reflections as the orbit index, with the responses of the
+early-reflection directions themselves rather than only their average.
+\end{itemize}
+The library is simulated, with one geometry per family, the far-field directivity of each driver on
+its baffle and shoebox rooms; it shows that the two orbits hold the information, not that these
+numbers are final. Measured loudspeakers and listening tests would.
+
+% =============================================================================================
 \section{Discussion}
 
 \subsection{The three objections}
@@ -783,9 +928,11 @@ instead of two orbits;
 \item for the steady-state in-room response, about $0.1\,\mathrm{LW} + 0.9\,\mathrm{SP}$: the room
 behaves mostly as a sound-power meter, the direct sound adding a little forward weight;
 \item for the early sound, which carries the reflections heard with the direct sound, about
-$0.4\,\mathrm{LW} + 0.5\,\mathrm{ER} + 0.1\,\mathrm{SP}$.
+$0.4\,\mathrm{LW} + 0.4\,\mathrm{ER} + 0.2\,\mathrm{SP}$ over the seven loudspeakers of
+section~\ref{sec:proposal} (about $0.4\,\mathrm{LW} + 0.5\,\mathrm{ER} + 0.1\,\mathrm{SP}$ for the two-way alone).
 \end{itemize}
-Fitted to the received energy, the first set of weights predicts the rooms within their own spread. It
+Fitted to the received energy, the first set of weights predicts the rooms within their own spread, and
+seven loudspeakers of five families keep it (section~\ref{sec:proposal}). It
 does not undo the averaging, though: no weighted mean of power responses shows the notch a single
 reflection carries. That has to be read direction by direction, on the polar maps or with a measure
 like the colouration of the paths used here, in the directions where the floor and ceiling bounces
@@ -804,8 +951,8 @@ reflections differently from their energy (binaural decoloration of lateral refl
 salience of the floor bounce in the median plane \cite{bech1996,olive1989}), which no weighting of
 power responses captures. The colouration metrics are physical measures: a narrow notch is harder to
 hear than a broad one of the same depth \cite{bucklein1981}, and the RMS deviation accounts for that only
-through its width. The loudspeaker is one two-way bookshelf in two versions; a three-way, a cardioid, a
-floor-standing loudspeaker or a larger listening distance would change the numbers, not the method.
+through its width. The main loudspeaker is one two-way bookshelf in two versions; the library of
+section~\ref{sec:proposal} adds five families, one geometry each, and no cardioid.
 Finally the study uses CTA-2034-A; its revision B was not checked.
 
 % =============================================================================================
@@ -823,7 +970,10 @@ a brickwall crossover removes about 60\,\% of the colouration of the floor and c
 smoother in-room response only when the drivers' directivities match at the crossover. Added with their
 phases at the ears, the paths leave the steady state as it is; at a fixed point the early sound
 carries the comb of the floor and ceiling bounces, which a Linkwitz-Riley notch removes near the
-crossover along with the reflections, and which hearing with two ears attenuates.
+crossover along with the reflections, and which hearing with two ears attenuates. Seven
+loudspeakers of five families confirm that the two orbits can carry a better standard: the sound
+power rebuilt driver by driver, $0.1\,\mathrm{LW} + 0.9\,\mathrm{SP}$ for the steady state, and the
+colouration of the reflections read direction by direction.
 
 % =============================================================================================
 \begin{thebibliography}{99}

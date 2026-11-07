@@ -159,6 +159,32 @@ deviation in dB from the straight line that fits the curve from 600 Hz to 8 kHz)
   colouration of a reflection has to be read in its own direction, −30 to −40° and +40 to +50° for the
   floor and ceiling at usual listening distances.
 
+### A two-orbit standard faithful to the rooms
+
+Five more loudspeakers join the two two-ways (a coaxial, an MTM, the horizontal three-way monitor of
+the turntable study, a three-way and a four-way tower standing on the floor), each with the four
+crossovers, every path taken from each driver's own position. Section 7 of the report:
+
+| | CTA-2034 | proposed |
+|---|---|---|
+| sound power from the two orbits, error against the sphere (worst crossover) | 0.34–1.57 dB RMS, up to 3.2 dB | 0.03–0.07 dB RMS, rebuilt driver by driver with phase |
+| steady-state in-room response, 150 test rooms | PIR: 1.69–2.92 dB median RMS | 0.1 LW + 0.9 SP: 0.42–0.82 dB |
+| early sound (direct sound and first reflections) | PIR: 1.52–2.31 dB | 0.4 LW + 0.4 ER + 0.2 SP: 0.44–0.81 dB |
+| colouration of the first reflections, correlation with the rooms | ER curve's roughness: 0.56 | orbit index: 0.97 |
+
+- The fitted weights barely move when each family is left out of the fit (LW 0.12–0.13, SP
+  0.92–0.95). With CTA-2034's two-orbit sound power the same weights give 0.48–1.52 dB, and the PIR's
+  weights with the rebuilt sound power 1.64–2.64 dB: the weights matter most, the sound power next.
+- The orbit index keeps the standard's early-reflection directions but reads each one's roughness
+  (deviation from itself smoothed over an octave) instead of averaging their power, weighted by the
+  energy each reflection brings. The averaged curves keep flattering the low slopes: the two-way's PIR
+  is smoother with LR2 than with the brickwall, its reflections are not.
+- Not every loudspeaker gains from a brickwall: the MTM's two woofers lobe below the crossover and a
+  steep filter lets them play up to it; the three-way monitor's midrange dome beams where its tweeter
+  does not, and the brickwall turns the crossover into a step of directivity.
+- The far-field reduction is fine for compact loudspeakers (0.01–0.11 dB) and less so for towers
+  (0.3 dB in steady state, 0.7 dB in the early sound).
+
 ## Reproduce
 
 Rust (stable) and, for the report, a LaTeX distribution with latexmk:
@@ -167,6 +193,7 @@ Rust (stable) and, for the report, a LaTeX distribution with latexmk:
 make test      # unit and integration tests
 make study     # every simulated quantity (about 20 seconds on 8 cores, results/study.bin)
 make coherent  # the paths with their phases at the ears (about 10 seconds, results/coherent.bin)
+make library   # the seven loudspeakers in the rooms (about 2 minutes, results/library/), and their summary
 make figures   # figures and tables in paper/, in English and in French
 make paper     # paper/main.pdf and paper/main_fr.pdf
 ```
@@ -179,7 +206,7 @@ The 300 rooms and the three named ones are in `data/rooms.json`.
 
 | path | content |
 |---|---|
-| `src/speaker.rs` | the two layouts, far field over the sphere with Distributed Edge Dipole diffraction |
+| `src/speaker.rs` | the seven layouts, far field over the sphere with Distributed Edge Dipole diffraction |
 | `src/directivity.rs` | piston, dome and constant-directivity (waveguide) radiators |
 | `src/crossover.rs` | LR2, LR4, LR8 and brickwall FIR targets, on-axis equalization |
 | `src/cta2034.rs` | the CTA-2034-A curves and the weight they give to each of the 70 directions |
@@ -188,9 +215,10 @@ The 300 rooms and the three named ones are in `data/rooms.json`.
 | `src/study.rs` | rooms as weights over directions, loudspeaker variants |
 | `src/analysis.rs` | in-room responses, fitted weights, prediction errors, colouration metrics |
 | `src/coherent.rs` | the images added with their phases at the ears, auditory (ERB) smoothing |
+| `src/standard.rs`, `src/library_figures.rs` | the library's two-orbit estimates, fitted weights, orbit index, and its figures |
 | `src/figures.rs`, `src/tables.rs`, `src/plot.rs` | the report's figures (SVG drawn with plotters, converted to PDF and PNG) and tables |
 | `src/signal.rs`, `src/special.rs`, `src/sphere.rs` | frequency grids, minimum phase, smoothing, special functions, splines, directions on the sphere |
-| `src/bin/` | `study` (the simulation), `coherent` (the phases at the ears) and `figures` (figures and tables) |
+| `src/bin/` | `study` (the simulation), `coherent` (the phases at the ears), `library` and `standard` (the seven loudspeakers), `figures` (figures and tables) |
 | `tests/` | integration tests; the modules carry their unit tests |
 | `data/` | the setups of the study (`rooms.json`) and the DejaVu Sans font of the figures |
 | `paper/` | LaTeX report in English (`main.tex`) and French (`main_fr.tex`), figures and generated tables (French ones in `fr/`) |
