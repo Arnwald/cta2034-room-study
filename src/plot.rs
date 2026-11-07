@@ -296,6 +296,15 @@ pub fn save(svg: &str, dir: &Path, stem: &str) {
     pixmap.save_png(dir.join(format!("{stem}.png"))).unwrap();
 }
 
+/// Writes ``stem.svg`` in ``dir`` for the web: the text turned into paths, so that it looks the
+/// same in every browser.
+pub fn save_web(svg: &str, dir: &Path, stem: &str) {
+    std::fs::create_dir_all(dir).unwrap();
+    let tree = usvg::Tree::from_str(svg, &usvg_options()).expect("figure SVG");
+    let opt = usvg::WriteOptions { coordinates_precision: 2, transforms_precision: 4, ..Default::default() };
+    std::fs::write(dir.join(format!("{stem}.svg")), tree.to_string(&opt)).unwrap();
+}
+
 // ---------------------------------------------------------------------------------------------
 // Charts
 // ---------------------------------------------------------------------------------------------

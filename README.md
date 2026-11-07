@@ -195,6 +195,7 @@ make study     # every simulated quantity (about 20 seconds on 8 cores, results/
 make coherent  # the paths with their phases at the ears (about 10 seconds, results/coherent.bin)
 make library   # the seven loudspeakers in the rooms (about 2 minutes, results/library/), and their summary
 make figures   # figures and tables in paper/, in English and in French
+make articles  # the figures of the two blog articles (articles/figures, SVG)
 make paper     # paper/main.pdf and paper/main_fr.pdf
 ```
 
@@ -221,6 +222,7 @@ The 300 rooms and the three named ones are in `data/rooms.json`.
 | `src/bin/` | `study` (the simulation), `coherent` (the phases at the ears), `library` and `standard` (the seven loudspeakers), `figures` (figures and tables) |
 | `tests/` | integration tests; the modules carry their unit tests |
 | `data/` | the setups of the study (`rooms.json`) and the DejaVu Sans font of the figures |
+| `src/articles.rs`, `articles/figures/` | the blog articles' figures |
 | `paper/` | LaTeX report in English (`main.tex`) and French (`main_fr.tex`), figures and generated tables (French ones in `fr/`) |
 
 ## Notes

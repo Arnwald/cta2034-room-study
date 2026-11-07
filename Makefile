@@ -1,4 +1,4 @@
-.PHONY: all test study coherent library figures paper clean
+.PHONY: all test study coherent library figures articles paper clean
 
 all: study coherent library figures paper
 
@@ -17,6 +17,9 @@ library:
 
 figures:
 	cargo run --release --bin figures
+
+articles:
+	cargo run --release --bin articles
 
 paper:
 	cd paper && latexmk -pdf -interaction=nonstopmode main.tex main_fr.tex

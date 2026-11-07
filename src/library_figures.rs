@@ -25,7 +25,7 @@ pub fn family_label(lang: Lang, name: &str) -> String {
 
 /// Grouped bars, one group per loudspeaker, with the names under the axis.
 #[allow(clippy::too_many_arguments)]
-fn bar_panel<DB: DrawingBackend>(
+pub fn bar_panel<DB: DrawingBackend>(
     root: &DrawingArea<DB, plotters::coord::Shift>,
     area: &DrawingArea<DB, plotters::coord::Shift>,
     ax: &Axes,
@@ -60,7 +60,7 @@ fn bar_panel<DB: DrawingBackend>(
     }
 }
 
-fn bar_axes(lang: Lang, title: &str, y: (f64, f64), ylabel: &str, n: usize, lines: usize, small: f64) -> Axes {
+pub fn bar_axes(lang: Lang, title: &str, y: (f64, f64), ylabel: &str, n: usize, lines: usize, small: f64) -> Axes {
     let mut a = Axes::lin(lang, title, (-0.6, n as f64 - 0.4), y, "", ylabel);
     a.x_ticks = steps_of(0.0, n as f64 - 1.0, 1.0);
     a.show_xlabels = false;
