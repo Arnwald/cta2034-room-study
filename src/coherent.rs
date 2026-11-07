@@ -294,10 +294,10 @@ pub fn run(setups: &[Setup], res: &Results, layouts: &[Layout], living: usize) -
                     let diffuse = power_on(study_f, &diffuse_study, &f);
                     // The paths in power at the reference point.
                     let mut energy = [diffuse.clone(), vec![0.0; nf]];
-                    for i in 0..n_img {
+                    for (i, ai) in a.iter().enumerate() {
                         let g = 1.0 / (im.distance[i] * im.distance[i]);
-                        for k in 0..nf {
-                            let e = a[i][k].norm_sqr() * g;
+                        for (k, v) in ai.iter().enumerate() {
+                            let e = v.norm_sqr() * g;
                             energy[0][k] += e;
                             if im.order[i] <= 1 {
                                 energy[1][k] += e;
