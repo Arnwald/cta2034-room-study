@@ -5,6 +5,7 @@ use std::path::Path;
 
 use crate::analysis::{self, Group, Metric, Sp, Study, Which};
 use crate::coherent::{self as coh_mod, CoherentResults, OMNI};
+use crate::standard::Summary;
 use crate::crossover::{Kind, KINDS};
 use crate::figures::{colouration_values, kind_label, name, notch_width, surf_label};
 use crate::plot::Lang;
@@ -46,7 +47,7 @@ fn closest(f: &[f64], x: f64) -> usize {
 pub use crate::figures::Spectra;
 
 /// Writes every table and ``numbers.tex``; returns the numbers.
-pub fn all(study: &Study, lang: Lang, dir: &Path, spectra: &Spectra, coh: Option<&CoherentResults>) -> BTreeMap<String, String> {
+pub fn all(study: &Study, lang: Lang, dir: &Path, spectra: &Spectra, coh: Option<&CoherentResults>, lib: Option<&Summary>) -> BTreeMap<String, String> {
     let res = &study.res;
     let f = study.freqs();
     let n = res.n_random;
@@ -334,6 +335,9 @@ pub fn all(study: &Study, lang: Lang, dir: &Path, spectra: &Spectra, coh: Option
     if let Some(coh) = coh {
         coherent(coh, lang, dir, &mut numbers);
     }
+    if let Some(lib) = lib {
+        library(lib, lang, dir, &mut numbers);
+    }
 
     let text: Vec<String> = numbers.iter().map(|(k, v)| format!("\\newcommand{{\\n{k}}}{{{v}}}")).collect();
     write(dir, "numbers", &(text.join("\n") + "\n"));
@@ -378,4 +382,86 @@ fn coherent(coh: &CoherentResults, lang: Lang, dir: &Path, numbers: &mut BTreeMa
     numbers.insert("cohSteadyGainMin".into(), num(gains.iter().cloned().fold(f64::INFINITY, f64::min)));
     numbers.insert("cohSteadyGainMax".into(), num(gains.iter().cloned().fold(f64::NEG_INFINITY, f64::max)));
     numbers.insert("erbCrossover".into(), format!("{:.0}", coh_mod::erb(2200.0)));
+}
+
+/// Tag of a loudspeaker in the macros.
+fn family_tag(name: &str) -> &'static str {
+    match name {
+        "two_way" => "Dome",
+        "two_way_wg" => "Wg",
+        "coaxial" => "Coax",
+        "mtm" => "Mtm",
+        "three_way_monitor" => "Monitor",
+        "three_way_tower" => "TowerThree",
+        _ => "TowerFour",
+    }
+}
+
+/// The library's table and numbers (``lib...`` macros).
+fn library(s: &Summary, lang: Lang, dir: &Path, numbers: &mut BTreeMap<String, String>) {
+    let num = |x: f64, p: usize| lang.tex(x, p);
+    let layouts = crate::speaker::library();
+    let mut body = Vec::new();
+    for (f, l) in s.families.iter().zip(&layouts) {
+        let name = crate::library_figures::family_label(lang, &f.name).replace('\n', " ");
+        let c = &l.cabinet;
+        let dims = format!("{:.0}\\,$\\times$\\,{:.0}\\,$\\times$\\,{:.0}", c.width * 1000.0, c.height * 1000.0, c.depth * 1000.0);
+        let xo: Vec<String> = l.crossovers.iter().map(|x| lang.tex(*x, 0)).collect();
+        let placed = if l.floor { lang.t("floor", "sol") } else { lang.t("stand", "pied") };
+        body.push(format!(
+            "{name} & {dims} & {} & {} & {placed} & {} & {} & {} \\\\",
+            l.drivers.len(),
+            xo.join(", "),
+            num(f.far[0], 2),
+            num(f.far[1], 2),
+            num(f.sp_rms[0], 2),
+        ));
+        let tag = family_tag(&f.name);
+        numbers.insert(format!("lib{tag}SpCta"), num(f.sp_rms[0], 2));
+        numbers.insert(format!("lib{tag}SpCtaMax"), num(f.sp_max[0], 1));
+        numbers.insert(format!("lib{tag}SpRing"), num(f.sp_rms[1], 2));
+        numbers.insert(format!("lib{tag}SpWays"), num(f.sp_rms[2], 2));
+        numbers.insert(format!("lib{tag}FarSteady"), num(f.far[0], 2));
+        numbers.insert(format!("lib{tag}FarEarly"), num(f.far[1], 2));
+        for k in &f.kinds {
+            let kw = kind_word(Kind::from_name(k.variant.rsplit_once('-').unwrap().1).unwrap());
+            for (key, v) in [("All", k.rooms[0]), ("Refl", k.rooms[1]), ("Vert", k.rooms[2]), ("Index", k.index[0]), ("Er", k.curves[1]), ("Pir", k.curves[0]), ("Room", k.curves[2])] {
+                numbers.insert(format!("lib{tag}{kw}{key}"), num(v, 2));
+            }
+        }
+    }
+    write(dir, "library", &(body.join("\n") + "\n"));
+    let range = |v: Vec<f64>| (v.iter().cloned().fold(f64::MAX, f64::min), v.iter().cloned().fold(f64::MIN, f64::max));
+    let (a, b) = range(s.families.iter().map(|f| f.sp_rms[0]).collect());
+    numbers.insert("libSpCtaMin".into(), num(a, 2));
+    numbers.insert("libSpCtaMax".into(), num(b, 2));
+    numbers.insert("libSpCtaPeak".into(), num(s.families.iter().map(|f| f.sp_max[0]).fold(0.0, f64::max), 1));
+    let (a, b) = range(s.families.iter().map(|f| f.sp_rms[2]).collect());
+    numbers.insert("libSpWaysMin".into(), num(a, 2));
+    numbers.insert("libSpWaysMax".into(), num(b, 2));
+    numbers.insert("libSpWaysPeak".into(), num(s.families.iter().map(|f| f.sp_max[2]).fold(0.0, f64::max), 2));
+    for (k, w) in ["Lw", "Er", "Sp"].iter().enumerate() {
+        numbers.insert(format!("libSteady{w}"), num(s.steady_fit[k], 2));
+        numbers.insert(format!("libEarly{w}"), num(s.early_fit[k], 2));
+    }
+    // The ER weight with its sign, for ``a LW <sign> b ER + c SP`` in math mode.
+    let signed = |x: f64| format!("{} {}", if x < 0.0 { "-" } else { "+" }, num(x.abs(), 2));
+    numbers.insert("libSteadyErSigned".into(), signed(s.steady_fit[1]));
+    numbers.insert("libEarlyErSigned".into(), signed(s.early_fit[1]));
+    numbers.insert("libLofoLwMin".into(), num(s.lofo_lw.0, 2));
+    numbers.insert("libLofoLwMax".into(), num(s.lofo_lw.1, 2));
+    numbers.insert("libLofoSpMin".into(), num(s.lofo_sp.0, 2));
+    numbers.insert("libLofoSpMax".into(), num(s.lofo_sp.1, 2));
+    for (name, lo, hi, bias) in &s.errors {
+        let key = title_case(name);
+        numbers.insert(format!("lib{key}Min"), num(*lo, 2));
+        numbers.insert(format!("lib{key}Max"), num(*hi, 2));
+        numbers.insert(format!("lib{key}Bias"), num(*bias, 1));
+    }
+    for (k, name) in ["Floor", "Ceiling", "Side", "Front", "Rear"].iter().enumerate() {
+        numbers.insert(format!("libShare{name}"), num(s.shares[k] * 100.0, 0));
+    }
+    for (k, name) in ["Index", "Er", "Pir", "Room", "IndexVert"].iter().enumerate() {
+        numbers.insert(format!("libCorr{name}"), num(s.corr[k], 2));
+    }
 }

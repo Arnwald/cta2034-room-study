@@ -116,15 +116,23 @@ pub fn pair(kind: Kind, f: &[f64], fc: f64) -> (Vec<C64>, Vec<C64>) {
     }
 }
 
-/// Acoustic targets of the drivers of a layout, lowest first.
+/// Acoustic targets of the ways of a layout, lowest first. At each crossover the way just below
+/// gets the low-pass, every way above the high-pass, and every way further below the
+/// crossover's all-pass (its low-pass plus high-pass), so that the ways sum to a pure all-pass (a
+/// delay for the brickwall).
 pub fn targets(kind: Kind, f: &[f64], crossovers: &[f64]) -> Vec<Vec<C64>> {
     let n = crossovers.len() + 1;
     let mut out = vec![vec![C64::new(1.0, 0.0); f.len()]; n];
     for (i, &fc) in crossovers.iter().enumerate() {
         let (lp, hp) = pair(kind, f, fc);
-        for j in 0..f.len() {
-            out[i][j] *= lp[j];
-            out[i + 1][j] *= hp[j];
+        for (w, way) in out.iter_mut().enumerate() {
+            for j in 0..f.len() {
+                way[j] *= match w.cmp(&i) {
+                    std::cmp::Ordering::Less => lp[j] + hp[j],
+                    std::cmp::Ordering::Equal => lp[j],
+                    std::cmp::Ordering::Greater => hp[j],
+                };
+            }
         }
     }
     out
@@ -138,17 +146,24 @@ pub fn equalizer(freqs: &[f64], on_axis: &[C64]) -> Vec<C64> {
     minimum_phase_at(freqs, &inverse)
 }
 
-/// The filters ``X_i = T_i E_i`` of a layout's drivers (lowest first) for one crossover kind.
+/// The filters ``X_i = T_w E_w`` of a layout's drivers for one crossover kind: every driver of a
+/// way ``w`` gets the way's target times the inverse of the way's summed on-axis response.
 pub fn filters(kind: Kind, freqs: &[f64], layout: &Layout, on_axis: &[Vec<C64>]) -> Vec<Vec<C64>> {
     let t = targets(kind, freqs, &layout.crossovers);
-    on_axis
-        .iter()
-        .enumerate()
-        .map(|(i, h)| {
-            let eq = equalizer(freqs, h);
-            t[i].iter().zip(&eq).map(|(a, b)| a * b).collect()
+    let ways = layout.crossovers.len() + 1;
+    let x: Vec<Vec<C64>> = (0..ways)
+        .map(|w| {
+            let mut h = vec![C64::new(0.0, 0.0); freqs.len()];
+            for (d, r) in layout.drivers.iter().zip(on_axis) {
+                if d.way == w {
+                    h.iter_mut().zip(r).for_each(|(a, b)| *a += b);
+                }
+            }
+            let eq = equalizer(freqs, &h);
+            t[w].iter().zip(&eq).map(|(a, b)| a * b).collect()
         })
-        .collect()
+        .collect();
+    layout.drivers.iter().map(|d| x[d.way].clone()).collect()
 }
 
 #[cfg(test)]
@@ -167,6 +182,20 @@ mod tests {
             let j = f.iter().enumerate().min_by(|a, b| (a.1 - 2200.0).abs().partial_cmp(&(b.1 - 2200.0).abs()).unwrap()).unwrap().0;
             assert!((lp[j] / hp[j]).arg().abs() < 0.05);
             assert!((20.0 * lp[j].norm().log10() + 6.0).abs() < 0.2);
+        }
+    }
+
+    #[test]
+    fn multi_way_targets_sum_to_an_all_pass() {
+        let f = log_grid(100.0, 20_000.0, 24);
+        for kind in KINDS {
+            for crossovers in [&[2200.0][..], &[450.0, 3000.0], &[250.0, 900.0, 3200.0]] {
+                let t = targets(kind, &f, crossovers);
+                for j in 0..f.len() {
+                    let s: C64 = t.iter().map(|w| w[j]).sum();
+                    assert!((s.norm() - 1.0).abs() < 1e-6, "{kind:?} {crossovers:?} {}", f[j]);
+                }
+            }
         }
     }
 

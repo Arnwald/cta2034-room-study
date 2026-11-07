@@ -7,6 +7,7 @@
 //! compares the two ([`study`], [`analysis`]).
 
 pub mod analysis;
+pub mod articles;
 pub mod coherent;
 pub mod constants;
 pub mod crossover;
@@ -14,6 +15,7 @@ pub mod cta2034;
 pub mod directivity;
 pub mod ensemble;
 pub mod figures;
+pub mod library_figures;
 pub mod mat;
 pub mod npy;
 pub mod plot;
@@ -23,6 +25,7 @@ pub mod room;
 pub mod signal;
 pub mod special;
 pub mod speaker;
+pub mod standard;
 pub mod sphere;
 pub mod study;
 pub mod tables;

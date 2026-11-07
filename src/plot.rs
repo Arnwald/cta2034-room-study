@@ -137,6 +137,21 @@ pub fn diverging(t: f64) -> RGBColor {
     )
 }
 
+/// Range (dB) of the directivity maps: the level off the axis, relative to the axis, reaches a few
+/// dB above it at most.
+pub const MAP_RANGE: (f64, f64) = (-18.0, 3.0);
+
+/// Colour of a level relative to the axis on the directivity maps: the diverging map centred on
+/// 0 dB, clipped to [`MAP_RANGE`].
+pub fn level_colour(v: f64) -> RGBColor {
+    diverging((v.clamp(MAP_RANGE.0, MAP_RANGE.1) + 18.0) / 36.0)
+}
+
+/// The same colours along a colour bar, ``t`` in [0, 1] over [`MAP_RANGE`].
+pub fn level_bar(t: f64) -> RGBColor {
+    level_colour(MAP_RANGE.0 + t * (MAP_RANGE.1 - MAP_RANGE.0))
+}
+
 /// Grey map, white to black.
 pub fn greys(t: f64) -> RGBColor {
     lerp_colors(&[(0xff, 0xff, 0xff), (0xbd, 0xbd, 0xbd), (0x73, 0x73, 0x73), (0x00, 0x00, 0x00)], t)
@@ -294,6 +309,15 @@ pub fn save(svg: &str, dir: &Path, stem: &str) {
     pixmap.fill(resvg::tiny_skia::Color::WHITE);
     resvg::render(&tree, resvg::tiny_skia::Transform::from_scale(scale, scale), &mut pixmap.as_mut());
     pixmap.save_png(dir.join(format!("{stem}.png"))).unwrap();
+}
+
+/// Writes ``stem.svg`` in ``dir`` for the web: the text turned into paths, so that it looks the
+/// same in every browser.
+pub fn save_web(svg: &str, dir: &Path, stem: &str) {
+    std::fs::create_dir_all(dir).unwrap();
+    let tree = usvg::Tree::from_str(svg, &usvg_options()).expect("figure SVG");
+    let opt = usvg::WriteOptions { coordinates_precision: 2, transforms_precision: 4, ..Default::default() };
+    std::fs::write(dir.join(format!("{stem}.svg")), tree.to_string(&opt)).unwrap();
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -960,6 +984,12 @@ pub fn colour_bar<DB: DrawingBackend>(
 pub fn colour_bar_width(w: i32, ticks: &[f64], text: &str, size: f64, lang: Lang) -> i32 {
     let tw = axis_labels(lang, ticks).iter().map(|s| text_width(s, LABEL)).fold(0.0, f64::max);
     w + label_dist() + tw.ceil() as i32 + pt(4.0) + (text.lines().count() as f64 * size * PT * 1.2).ceil() as i32 + pt(2.0)
+}
+
+/// Values from ``lo`` to ``hi`` every ``step``.
+pub fn steps_of(lo: f64, hi: f64, step: f64) -> Vec<f64> {
+    let n = ((hi - lo) / step + 1e-9).floor() as usize;
+    (0..=n).map(|i| lo + i as f64 * step).collect()
 }
 
 /// Text at a data position of a chart.
