@@ -261,6 +261,8 @@ pub struct Images {
     pub direction: Vec<Vec3>,
     /// Delay after the direct sound (s).
     pub delay: Vec<f64>,
+    /// Position of the image source (room frame).
+    pub position: Vec<Vec3>,
     /// First-order images: the surface, the material and the reflection point.
     pub first: Vec<Option<usize>>,
     pub material: Vec<Option<usize>>,
@@ -320,16 +322,17 @@ pub fn image_sources(setup: &Setup, max_order: usize) -> Images {
             point = Some(p);
         }
         items.push((dist, tmp.len()));
-        tmp.push((order, counts, dist, setup.to_speaker(&d_room), (dist - direct) / C, first, material, point));
+        tmp.push((order, counts, dist, setup.to_speaker(&d_room), (dist - direct) / C, u, first, material, point));
     }
     items.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
     for (_, i) in items {
-        let (order, counts, dist, dir, delay, first, material, point) = tmp[i];
+        let (order, counts, dist, dir, delay, position, first, material, point) = tmp[i];
         out.order.push(order);
         out.counts.push(counts);
         out.distance.push(dist);
         out.direction.push(dir);
         out.delay.push(delay);
+        out.position.push(position);
         out.first.push(first);
         out.material.push(material);
         out.point.push(point);

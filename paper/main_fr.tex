@@ -69,7 +69,10 @@ réflexions sont les plus colorées. Lu trajet par trajet, un filtre brickwall r
 la coloration des rebonds sur le sol et le plafond (\ncolDomeRedVert\,\% avec le dôme nu,
 \ncolWgRedVert\,\% avec le guide d'onde), en laissant des creux aussi profonds mais dix à treize fois plus
 étroits~; la courbe dans la pièce ne devient plus régulière que si les directivités des haut-parleurs
-se raccordent.
+se raccordent. Sommés avec leurs phases aux oreilles de l'auditeur et lissés par les filtres auditifs,
+les trajets changent peu le régime établi~; dans le son précoce en un point fixe, le peigne des rebonds
+sur le sol et le plafond l'emporte sur la coloration de tous les filtres, et le creux du Linkwitz-Riley,
+qui retire ces réflexions près du raccordement, y retire aussi leur peigne.
 \end{abstract}
 
 \tableofcontents
@@ -685,6 +688,94 @@ s'appuie sur la fenêtre d'écoute, où les lobes verticaux ne se voient pas~; i
 plus faible du brickwall (\ncolDomeRedPir\ contre \ncolDomeRedSteady\,\% avec le dôme nu, \ncolWgRedPir\
 contre \ncolWgRedSteady\,\% avec le guide d'onde). Les poids mis à jour se situent entre les deux.
 
+\clearpage
+\subsection{Interférences aux oreilles}
+\label{sec:interference}
+
+Jusqu'ici, toutes les réponses somment les trajets en puissance, comme si chacun s'entendait seul. En un
+point fixe, le son direct et les réflexions s'ajoutent en pression~: une réflexion retardée de $\tau$
+creuse la réponse tous les $1/\tau$, en peigne. Pour voir ce que ce peigne change à la comparaison, le
+son direct et les images jusqu'au troisième ordre ont été sommés avec leurs phases en quatorze
+points~: les deux oreilles, distantes de 17,5\,cm et sans tête, de sept positions de la tête (la
+position de référence, 10\,cm de part et d'autre, 10\,cm en avant et en arrière, 5\,cm plus haut et plus
+bas). Chaque image garde la racine de son poids énergétique comme coefficient de réflexion réel et
+positif, et la réponse de l'enceinte dans la direction où part son trajet~; le champ diffus reste sommé
+en énergie. L'oreille ne résout pas le peigne serré d'une réflexion tardive~: chaque réponse est donc
+lissée par les filtres auditifs de Glasberg et Moore \cite{glasberg1990}, des exponentielles arrondies
+larges d'une ERB (\nerbCrossover\,Hz au raccordement, environ un sixième d'octave), calculées sur une grille
+de 4\,Hz, avant que l'on prenne son écart à moins d'une octave du raccordement. L'énergie des images
+coïncide avec celle de l'étude à $\ncohCheck$\,dB près. Une source omnidirectionnelle dans les mêmes pièces
+montre les peignes que les pièces produisent seules.
+
+\begin{table}[t]
+\centering
+\caption{Écart à moins d'une octave du raccordement (dB RMS, médiane des 300 pièces) des trajets sommés
+en énergie au point de référence, puis avec leurs phases~: en un point (médiane des quatorze), aux deux
+oreilles moyennées en puissance, sur les quatorze points moyennés. Deux voies debout~; réponses lissées
+par les filtres auditifs.}
+\label{tab:coherent}
+\small
+\begin{tabular}{lrrrrrrrr}
+\toprule
+& \multicolumn{4}{c}{régime établi} & \multicolumn{4}{c}{son précoce} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+& énergie & point & oreilles & 14 pts & énergie & point & oreilles & 14 pts \\
+\midrule
+\rows{coherent}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{interference}
+\caption{Son précoce dans le salon de la figure~\ref{fig:setup}, relatif à une source
+omnidirectionnelle~: les trajets sommés en énergie au point de référence (tirets), et avec leurs phases
+en chacun des quatorze points (traits fins) et en moyenne sur ces points (trait épais)~; lissage par les
+filtres auditifs.}
+\label{fig:interference}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{interference_summary}
+\caption{Écart du son précoce à moins d'une octave du raccordement (médiane des 300 pièces)~: les trajets
+sommés en énergie, puis avec leurs phases en un point, aux deux oreilles moyennées, sur les quatorze
+points moyennés. Traits noirs~: une source omnidirectionnelle, les peignes des seules pièces.}
+\label{fig:interference-summary}
+\end{figure}
+
+\emph{En régime établi, les phases changent peu de chose} (tableau~\ref{tab:coherent}). Le champ diffus,
+sommé en énergie, comble les peignes~: en un point, l'écart augmente de \ncohSteadyGainMin\ à
+\ncohSteadyGainMax\,dB, et les filtres gardent leur ordre (dôme nu~: LR2 \ncohDomeLrTwoSteadyPoint, LR4
+\ncohDomeLrFourSteadyPoint, brickwall \ncohDomeFirSteadyPoint\,dB~; guide d'onde~: \ncohWgLrFourSteadyPoint\
+avec le LR4 contre \ncohWgFirSteadyPoint\ avec le brickwall). Les peignes de la source omnidirectionnelle
+laissent \ncohOmniSteadyPoint\,dB.
+
+\emph{Le son précoce en un point est une autre affaire} (figures~\ref{fig:interference}
+et~\ref{fig:interference-summary}). Le son direct y rencontre les rebonds sur le sol et le plafond,
+\ndelayFloor\ et \ndelayCeiling\,ms plus tard dans la pièce médiane~: leurs peignes, espacés de quelques
+centaines de hertz, ont à peu près la largeur des filtres auditifs et résistent au lissage. La source
+omnidirectionnelle montre \ncohOmniEarlyPoint\,dB RMS à moins d'une octave du raccordement en un point,
+plus qu'aucun filtre en énergie (\ncohDomeLrEightEarlyEnergy\,dB au plus, le LR8 avec le dôme nu). Les
+enceintes se placent entre les deux, de \ncohDomeLrTwoEarlyPoint\ (LR2) à \ncohDomeFirEarlyPoint\,dB
+(brickwall) avec le dôme nu, de \ncohWgLrTwoEarlyPoint\ à \ncohWgFirEarlyPoint\,dB avec le guide d'onde, et le
+brickwall passe au dernier rang~: le plus régulier en énergie avec le guide d'onde
+(\ncohWgFirEarlyEnergy\ contre \ncohWgLrFourEarlyEnergy\,dB pour le LR4), il est le plus irrégulier en un
+point. Le creux du Linkwitz-Riley retire les rebonds sur le sol et le plafond autour du raccordement, et
+leur peigne avec eux~: dans le salon, les quatorze points rejoignent la somme en énergie vers 2\,kHz avec
+le LR4, pas avec le brickwall, qui laisse intacts les réflexions et leur peigne. Moyenner les deux
+oreilles ou les quatorze points réduit les écarts sans les combler (\ncohWgLrFourEarlySpatial\ contre
+\ncohWgFirEarlySpatial\,dB sur les quatorze points avec le guide d'onde).
+
+Ce que mesure le peigne, c'est la pièce, pas le filtre~: une source sans filtre le montre partout, et un
+filtre qui creuse les réflexions près de sa fréquence l'y retire, avec une partie de leur énergie.
+Dire si cela s'entend mieux revient aux tests d'écoute. Le peigne d'une réflexion isolée colore moins
+le son pour deux oreilles que pour une seule (décoloration binaurale \cite{salomons1995}), et le spectre
+propre des réflexions, que mesure la coloration des trajets, est ce que l'oreille attribue à la pièce.
+Les interférences laissent donc intact le tableau du régime établi~; en un point fixe, elles échangent la
+coloration des réflexions par le filtre contre le peigne que ces réflexions provoquent.
+
 % =============================================================================================
 \section{Discussion}
 
@@ -742,8 +833,8 @@ traitées, avec des coefficients de manuel et un modèle hybride spéculaire et 
 ont des meubles sur les trajets, des ouvertures, des formes irrégulières. Leur réverbération et leurs
 parts d'énergie découlent de la constante de salle et ne sont pas propres à ce modèle, mais la part de
 chaque première réflexion dépend des matériaux au point de réflexion. Les trajets sont sommés en
-énergie~: le filtrage en peigne en un point fixe, et les modes de la pièce sous 200\,Hz environ, sortent
-du cadre de l'étude. Le son précoce est lui aussi une somme d'énergie~; l'audition pèse les réflexions
+énergie, sauf à la section~\ref{sec:interference}, où les images se rencontrent avec leurs phases en des
+points sans tête~; les modes de la pièce sous 200\,Hz environ sortent du cadre de l'étude. Le son précoce est lui aussi une somme d'énergie~; l'audition pèse les réflexions
 autrement que par leur énergie (décoloration binaurale des réflexions latérales, poids du rebond sur le
 sol dans le plan médian \cite{bech1996,olive1989}), ce qu'aucune pondération de réponses en puissance ne
 saisit. Les mesures de coloration sont physiques~: un creux étroit s'entend moins qu'un creux large de
@@ -765,7 +856,10 @@ puissance de toute la sphère, que deux orbites sous-estiment là où les haut-p
 moyenne, celle de la pièce comprise, comble les creux que le filtre dessine dans chaque réflexion, et
 flatte d'abord les filtres à faible pente. Lu trajet par trajet, un filtre brickwall retire environ
 60\,\% de la coloration des rebonds sur le sol et le plafond~; il ne donne une réponse plus régulière dans
-la pièce que si les directivités des haut-parleurs se raccordent.
+la pièce que si les directivités des haut-parleurs se raccordent. Sommés avec leurs phases aux
+oreilles, les trajets laissent le régime établi tel quel~; en un point fixe, le son précoce porte le
+peigne des rebonds sur le sol et le plafond, qu'un creux de Linkwitz-Riley retire près du raccordement
+avec les réflexions, et qu'une écoute à deux oreilles atténue.
 
 % =============================================================================================
 \begin{thebibliography}{99}
@@ -820,6 +914,12 @@ Acoust. Soc. Am.}, vol.~99, n\textsuperscript{o}~6, 1996.
 
 \bibitem{bucklein1981} R. Bücklein, \og The Audibility of Frequency Response Irregularities\fg{}, \emph{J.
 Audio Eng. Soc.}, vol.~29, n\textsuperscript{o}~3, p.~126--131, 1981.
+
+\bibitem{glasberg1990} B. R. Glasberg, B. C. J. Moore, \og Derivation of auditory filter shapes from
+notched-noise data\fg{}, \emph{Hearing Research}, vol.~47, p.~103--138, 1990.
+
+\bibitem{salomons1995} A. M. Salomons, \emph{Coloration and Binaural Decoloration of Sound due to
+Reflections}, thèse de doctorat, Delft University of Technology, 1995.
 
 \end{thebibliography}
 

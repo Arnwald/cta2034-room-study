@@ -145,6 +145,14 @@ deviation in dB from the straight line that fits the curve from 600 Hz to 8 kHz)
 - **The averaged curve improves only when the directivities match.** With the plain dome the 6.5-inch
   cone beams at 2.2 kHz while the dome does not: the brickwall replaces the broad LR4 dip by a step of
   about 3 dB and a narrow notch. With the waveguide there is no step left, and the deviation halves.
+- **With the phases, at the ears.** Added as pressures at fourteen points (two ears of seven head
+  positions) and smoothed by the auditory filters (one ERB), the paths change the steady state
+  little: 0.04 to 0.21 dB more deviation, the same ranking. In the early sound at one point the comb
+  of the floor and ceiling bounces dominates: 1.32 dB for an omnidirectional source, 0.89 (LR2) to
+  1.23 dB (brickwall) with the plain dome, 0.67 to 0.91 dB with the waveguide. The Linkwitz-Riley notch
+  removes these reflections near the crossover, and their comb with them; the brickwall keeps both.
+  Two ears or fourteen points narrow the gaps without closing them. The comb is the room's, not the
+  crossover's; how much of it is heard as colouration with two ears is for listening tests.
 - **The standard's weights** give the paths' colouration less weight than the rooms do (1.73 against
   2.25 dB with the dome and LR4) and show a slightly smaller gain from the brickwall (22 against 28 %
   with the plain dome, 47 against 50 % with the waveguide). No weighting undoes the averaging: the
@@ -158,6 +166,7 @@ Rust (stable) and, for the report, a LaTeX distribution with latexmk:
 ```sh
 make test      # unit and integration tests
 make study     # every simulated quantity (about 20 seconds on 8 cores, results/study.bin)
+make coherent  # the paths with their phases at the ears (about 10 seconds, results/coherent.bin)
 make figures   # figures and tables in paper/, in English and in French
 make paper     # paper/main.pdf and paper/main_fr.pdf
 ```
@@ -178,9 +187,10 @@ The 300 rooms and the three named ones are in `data/rooms.json`.
 | `src/ensemble.rs` | materials, the random ensemble, three named rooms |
 | `src/study.rs` | rooms as weights over directions, loudspeaker variants |
 | `src/analysis.rs` | in-room responses, fitted weights, prediction errors, colouration metrics |
+| `src/coherent.rs` | the images added with their phases at the ears, auditory (ERB) smoothing |
 | `src/figures.rs`, `src/tables.rs`, `src/plot.rs` | the report's figures (SVG drawn with plotters, converted to PDF and PNG) and tables |
 | `src/signal.rs`, `src/special.rs`, `src/sphere.rs` | frequency grids, minimum phase, smoothing, special functions, splines, directions on the sphere |
-| `src/bin/` | `study` (the simulation) and `figures` (figures and tables) |
+| `src/bin/` | `study` (the simulation), `coherent` (the phases at the ears) and `figures` (figures and tables) |
 | `tests/` | integration tests; the modules carry their unit tests |
 | `data/` | the setups of the study (`rooms.json`) and the DejaVu Sans font of the figures |
 | `paper/` | LaTeX report in English (`main.tex`) and French (`main_fr.tex`), figures and generated tables (French ones in `fr/`) |
@@ -189,7 +199,8 @@ The 300 rooms and the three named ones are in `data/rooms.json`.
 
 The curves follow CTA-2034-A as it is commonly implemented (ER as the mean of its five bounces).
 CTA-2034-B was published in July 2024; what it changed was not checked here. The rooms are simulated,
-with textbook coefficients; the steady-state energy is a spatial average (paths added in power).
+with textbook coefficients; the steady-state energy is a spatial average (paths added in power), the
+phases being taken into account only in the coherent analysis, at points without a head.
 The colouration metrics are physical measures, not perceptual ones. The study was first written
 in Python; the Rust version reproduces its tables and quoted numbers exactly.
 

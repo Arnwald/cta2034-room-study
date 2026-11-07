@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::analysis::{self, Group, Metric, Sp, Study, Which};
+use crate::coherent::{self as coh_mod, CoherentResults, OMNI};
 use crate::crossover::{Kind, KINDS};
 use crate::figures::{colouration_values, kind_label, name, notch_width, surf_label};
 use crate::plot::Lang;
@@ -45,7 +46,7 @@ fn closest(f: &[f64], x: f64) -> usize {
 pub use crate::figures::Spectra;
 
 /// Writes every table and ``numbers.tex``; returns the numbers.
-pub fn all(study: &Study, lang: Lang, dir: &Path, spectra: &Spectra) -> BTreeMap<String, String> {
+pub fn all(study: &Study, lang: Lang, dir: &Path, spectra: &Spectra, coh: Option<&CoherentResults>) -> BTreeMap<String, String> {
     let res = &study.res;
     let f = study.freqs();
     let n = res.n_random;
@@ -330,7 +331,51 @@ pub fn all(study: &Study, lang: Lang, dir: &Path, spectra: &Spectra) -> BTreeMap
         }
     }
 
+    if let Some(coh) = coh {
+        coherent(coh, lang, dir, &mut numbers);
+    }
+
     let text: Vec<String> = numbers.iter().map(|(k, v)| format!("\\newcommand{{\\n{k}}}{{{v}}}")).collect();
     write(dir, "numbers", &(text.join("\n") + "\n"));
     numbers
+}
+
+/// The table of the paths added with their phases, and its numbers (``coh...`` macros).
+fn coherent(coh: &CoherentResults, lang: Lang, dir: &Path, numbers: &mut BTreeMap<String, String>) {
+    let num = |x: f64| lang.tex(x, 2);
+    let keys = ["Energy", "Point", "Ears", "Spatial"];
+    let mut body = Vec::new();
+    let mut rows: Vec<(String, String, String)> = Vec::new();
+    for layout in ["two_way", "two_way_wg"] {
+        for k in KINDS {
+            let tag = if layout == "two_way" { "Dome" } else { "Wg" };
+            let label = format!("{}, {}", if layout == "two_way" { lang.t("dome", "dôme") } else { lang.t("waveguide", "guide d’onde") }, kind_label(lang, k));
+            rows.push((name(layout, "upright", k), label, format!("{tag}{}", kind_word(k))));
+        }
+    }
+    rows.push((OMNI.into(), lang.t("omnidirectional source", "source omnidirectionnelle"), "Omni".into()));
+    for (i, (variant, label, tag)) in rows.iter().enumerate() {
+        let steady = coh_mod::values(coh, variant, 0);
+        let early = coh_mod::values(coh, variant, 1);
+        for (which, vals) in [("Steady", steady), ("Early", early)] {
+            for (key, v) in keys.iter().zip(vals) {
+                numbers.insert(format!("coh{tag}{which}{key}"), num(v));
+            }
+        }
+        if i == 4 || i == 8 {
+            body.push("\\addlinespace".to_string());
+        }
+        let cells: Vec<String> = steady.iter().chain(&early).map(|v| num(*v)).collect();
+        body.push(format!("{label} & {} \\\\", cells.join(" & ")));
+    }
+    write(dir, "coherent", &(body.join("\n") + "\n"));
+    numbers.insert("cohCheck".into(), format!("10^{{{}}}", coh.check_db.log10().ceil()));
+    // What the phases add in steady state at one point, from the gentlest to the largest.
+    let gains: Vec<f64> = rows[..8].iter().map(|(v, _, _)| {
+        let s = coh_mod::values(coh, v, 0);
+        s[1] - s[0]
+    }).collect();
+    numbers.insert("cohSteadyGainMin".into(), num(gains.iter().cloned().fold(f64::INFINITY, f64::min)));
+    numbers.insert("cohSteadyGainMax".into(), num(gains.iter().cloned().fold(f64::NEG_INFINITY, f64::max)));
+    numbers.insert("erbCrossover".into(), format!("{:.0}", coh_mod::erb(2200.0)));
 }

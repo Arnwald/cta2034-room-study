@@ -1,12 +1,15 @@
-.PHONY: all test study figures paper clean
+.PHONY: all test study coherent figures paper clean
 
-all: study figures paper
+all: study coherent figures paper
 
 test:
 	cargo test --release
 
 study:
 	cargo run --release --bin study
+
+coherent:
+	cargo run --release --bin coherent
 
 figures:
 	cargo run --release --bin figures

@@ -7,6 +7,7 @@
 //! compares the two ([`study`], [`analysis`]).
 
 pub mod analysis;
+pub mod coherent;
 pub mod constants;
 pub mod crossover;
 pub mod cta2034;

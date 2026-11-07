@@ -7,6 +7,7 @@ use plotters::prelude::*;
 use plotters::style::text_anchor::{HPos, VPos};
 
 use crate::analysis::{self, Group, Metric, Sp, Study, Which};
+use crate::coherent::{self, CoherentResults, OMNI};
 use crate::crossover::{self, Kind, KINDS};
 use crate::cta2034;
 use crate::plot::{
@@ -1018,8 +1019,134 @@ pub fn polar_maps(c: &Ctx) {
     save(&svg, c.dir, "polar_maps");
 }
 
+/// The living room's early sound with the paths added in power and with their phases at the
+/// fourteen points (LR4 and brickwall, dome and waveguide).
+pub fn interference(c: &Ctx, coh: &CoherentResults) {
+    let lang = c.lang;
+    let f = &coh.freqs;
+    let layouts = ["two_way", "two_way_wg"];
+    let kinds = [Kind::Lr4, Kind::Fir];
+    let mut axes = Vec::new();
+    for (row, layout) in layouts.iter().enumerate() {
+        for (col, k) in kinds.iter().enumerate() {
+            let mut a = Axes::freq(
+                lang,
+                &format!("{}, {}", layout_label(lang, layout), kind_label(lang, *k)),
+                (500.0, 9000.0),
+                (-10.0, 4.0),
+                &if col == 0 { c.t("early sound re omnidirectional (dB)", "son précoce relatif à l’omni (dB)") } else { String::new() },
+            );
+            a.x_ticks = vec![500.0, 1000.0, 2000.0, 5000.0];
+            a.title_size = 8.0;
+            a.show_xlabels = row == 1;
+            a.show_ylabels = col == 0;
+            axes.push(a);
+        }
+    }
+    let svg = render(W2, 4.6, |root| {
+        let p = layout(root, 2, 2, &mut axes);
+        for (row, layout) in layouts.iter().enumerate() {
+            for (col, k) in kinds.iter().enumerate() {
+                let i = 2 * row + col;
+                let ax = &axes[i];
+                let mut ch = ax.build(&p[i]);
+                let curves = &coh.living[coh.variant(&name(layout, "upright", *k))][1];
+                let to_db = |v: &[f32]| v.iter().map(|x| db10(*x as f64)).collect::<Vec<f64>>();
+                let colour = kind_color(*k);
+                for point in &curves[1..] {
+                    line(&mut ch, ax, f, &to_db(point), colour.mix(0.35), 0.5, Dash::Solid, None);
+                }
+                let n = (curves.len() - 1) as f32;
+                let mean: Vec<f32> = (0..f.len()).map(|j| curves[1..].iter().map(|c| c[j]).sum::<f32>() / n).collect();
+                let first = i == 0;
+                line(&mut ch, ax, f, &to_db(&mean), colour, LW, Dash::Solid, first.then(|| c.t("fourteen points, mean", "quatorze points, moyenne")).as_deref());
+                line(&mut ch, ax, f, &to_db(&curves[0]), INK, LW, Dash::Dashed, first.then(|| c.t("paths in power", "chemins en énergie")).as_deref());
+                if first {
+                    ch.draw_series(LineSeries::new(Vec::<(f64, f64)>::new(), colour.mix(0.5).stroke_width(sw(0.5))))
+                        .unwrap()
+                        .label(c.t("each point, with phases", "chaque point, avec les phases"))
+                        .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + pt(14.0), y)], colour.mix(0.5).stroke_width(sw(0.8))));
+                    legend(&mut ch, SeriesLabelPosition::LowerLeft, 6.5);
+                }
+            }
+        }
+    });
+    save(&svg, c.dir, "interference");
+}
+
+/// Deviation of the early sound within one octave of the crossover, with and without the phases.
+pub fn interference_summary(c: &Ctx, coh: &CoherentResults) {
+    let lang = c.lang;
+    let labels: Vec<String> = vec![
+        c.t("paths in\npower", "chemins\nen énergie"),
+        c.t("one\npoint", "un\npoint"),
+        c.t("two\nears", "deux\noreilles"),
+        c.t("fourteen\npoints", "quatorze\npoints"),
+    ];
+    let small = 6.0;
+    let lines = labels.iter().map(|l| l.lines().count()).max().unwrap();
+    let omni = coherent::values(coh, OMNI, 1);
+    let mut axes: Vec<Axes> = ["two_way", "two_way_wg"]
+        .iter()
+        .enumerate()
+        .map(|(i, layout)| {
+            let mut a = Axes::lin(
+                lang,
+                &format!("{}, {}", c.t("two-way", "deux voies"), layout_label(lang, layout)),
+                (-0.6, 3.6),
+                (0.0, 1.85),
+                "",
+                &if i == 0 { c.t("early sound, deviation\n1.1-4.4 kHz (dB RMS)", "son précoce, écart\n1,1–4,4\u{a0}kHz (dB RMS)") } else { String::new() },
+            );
+            a.x_ticks = steps(0.0, 3.0, 1.0);
+            a.y_ticks = steps(0.0, 1.8, 0.2);
+            a.show_xlabels = false;
+            a.x_grid = false;
+            a.show_ylabels = i == 0;
+            a.x_label_area = Some(5.0 + 1.0 + lines as f64 * small * 1.2 + 2.0);
+            a
+        })
+        .collect();
+    let svg = render(W2, 2.8, |root| {
+        let p = layout(root, 1, 2, &mut axes);
+        for (i, layout) in ["two_way", "two_way_wg"].iter().enumerate() {
+            let ax = &axes[i];
+            let mut ch = ax.build(&p[i]);
+            let width = 0.2;
+            let mut entries = Vec::new();
+            for (ki, k) in KINDS.iter().enumerate() {
+                let vals = coherent::values(coh, &name(layout, "upright", *k), 1);
+                let col = kind_color(*k);
+                ch.draw_series(vals.iter().enumerate().map(|(m, v)| {
+                    let x0 = m as f64 + (ki as f64 - 2.0) * width;
+                    Rectangle::new([(x0, 0.0), (x0 + width, *v)], col.filled())
+                }))
+                .unwrap();
+                entries.push((Swatch::Patch(col), kind_label(lang, *k)));
+            }
+            for (m, v) in omni.iter().enumerate().skip(1) {
+                ch.draw_series(once(PathElement::new(vec![(m as f64 - 0.45, *v), (m as f64 + 0.45, *v)], INK.stroke_width(sw(1.2))))).unwrap();
+            }
+            entries.push((Swatch::Line(INK, 1.2, Dash::Solid), c.t("omnidirectional source", "source omnidirectionnelle")));
+            outline(&ch);
+            let (_, ys) = ch.plotting_area().get_pixel_range();
+            for (m, text) in labels.iter().enumerate() {
+                let (bx, _) = ch.backend_coord(&(m as f64, 0.0));
+                for (li, l) in text.lines().enumerate() {
+                    let y = ys.end + pt(5.0) + pt(1.0) + (li as f64 * small * PT * 1.2).round() as i32;
+                    label(root, l, (bx, y), small, &INK_2, HPos::Center, VPos::Top, false);
+                }
+            }
+            if i == 0 {
+                legend_in(root, &ch, Place::UpperLeft, &entries, 2, 6.5, Ground::Plain);
+            }
+        }
+    });
+    save(&svg, c.dir, "interference_summary");
+}
+
 /// Every figure of the report in one language.
-pub fn all(study: &Study, setups: &[Setup], lang: Lang, dir: &Path, spectra: &Spectra) {
+pub fn all(study: &Study, setups: &[Setup], lang: Lang, dir: &Path, spectra: &Spectra, coh: Option<&CoherentResults>) {
     let c = Ctx { study, lang, dir, setups };
     setup(&c);
     kernel_maps(&c);
@@ -1035,4 +1162,8 @@ pub fn all(study: &Study, setups: &[Setup], lang: Lang, dir: &Path, spectra: &Sp
     vertical_colouration(&c);
     colouration(&c);
     polar_maps(&c);
+    if let Some(coh) = coh {
+        interference(&c, coh);
+        interference_summary(&c, coh);
+    }
 }
