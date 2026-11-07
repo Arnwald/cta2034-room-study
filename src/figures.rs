@@ -972,7 +972,7 @@ pub fn polar_maps(c: &Ctx) {
         })
         .collect();
     let bar_text = c.t("level re on axis (dB)", "niveau relatif à l’axe (dB)");
-    let ticks = steps(-15.0, 15.0, 5.0);
+    let ticks = steps(-15.0, 0.0, 5.0);
     let bar_w = pt(9.0);
     let zone = pt(6.0) + colour_bar_width(bar_w, &ticks, &bar_text, DESC, lang);
     let mut axes = Vec::new();
@@ -1003,7 +1003,7 @@ pub fn polar_maps(c: &Ctx) {
             for col in 0..4 {
                 let mut ch = axes[row * 4 + col].build(&p[row * 4 + col]);
                 let m = &maps[row][col];
-                let pixels: Vec<RGBColor> = (0..angles.len()).rev().flat_map(|ai| m[ai].iter().map(|v| plot::diverging((v + 18.0) / 36.0)).collect::<Vec<_>>()).collect();
+                let pixels: Vec<RGBColor> = (0..angles.len()).rev().flat_map(|ai| m[ai].iter().map(|v| plot::level_colour(*v)).collect::<Vec<_>>()).collect();
                 let marker = plot::raster(f.len(), angles.len(), &pixels);
                 ch.draw_series(once(Rectangle::new([(lf[0], -90.0), (lf[f.len() - 1], 90.0)], marker.filled()))).unwrap();
                 outline(&ch);
@@ -1014,7 +1014,7 @@ pub fn polar_maps(c: &Ctx) {
         }
         let bar_h = (0.8 * (bottom - top) as f64).round() as i32;
         let y0 = (top + bottom) / 2 - bar_h / 2;
-        colour_bar(root, (grid_w + pt(6.0), y0), (bar_w, bar_h), plot::diverging, (-18.0, 18.0), &ticks, &bar_text, DESC, lang);
+        colour_bar(root, (grid_w + pt(6.0), y0), (bar_w, bar_h), plot::level_bar, plot::MAP_RANGE, &ticks, &bar_text, DESC, lang);
     });
     save(&svg, c.dir, "polar_maps");
 }

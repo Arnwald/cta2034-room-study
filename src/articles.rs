@@ -248,7 +248,7 @@ fn maps<DB: DrawingBackend>(
     let (mut top, mut bottom) = (i32::MAX, 0);
     for ((ax, area), m) in axes.iter().zip(panels).zip(data) {
         let mut ch = ax.build(area);
-        let pixels: Vec<RGBColor> = (0..m.len()).rev().flat_map(|a| m[a].iter().map(|v| crate::plot::diverging((v + 18.0) / 36.0)).collect::<Vec<_>>()).collect();
+        let pixels: Vec<RGBColor> = (0..m.len()).rev().flat_map(|a| m[a].iter().map(|v| crate::plot::level_colour(*v)).collect::<Vec<_>>()).collect();
         let marker = crate::plot::raster(f.len(), m.len(), &pixels);
         ch.draw_series(once(Rectangle::new([(lf[0], -90.0), (lf[f.len() - 1], 90.0)], marker.filled()))).unwrap();
         outline(&ch);
@@ -258,7 +258,7 @@ fn maps<DB: DrawingBackend>(
     }
     let (top, bottom) = span.unwrap_or((top, bottom));
     let h = ((bottom - top) as f64 * 0.8) as i32;
-    crate::plot::colour_bar(root, (bar_x, (top + bottom) / 2 - h / 2), (pt(7.0), h), crate::plot::diverging, (-18.0, 18.0), &steps_of(-15.0, 15.0, 5.0), "level re on axis (dB)", 7.5, EN);
+    crate::plot::colour_bar(root, (bar_x, (top + bottom) / 2 - h / 2), (pt(7.0), h), crate::plot::level_bar, crate::plot::MAP_RANGE, &steps_of(-15.0, 0.0, 5.0), "level re on axis (dB)", 7.5, EN);
 }
 
 fn map_axes(title: &str, ylabel: &str, show_x: bool, show_y: bool) -> Axes {
@@ -288,7 +288,7 @@ pub fn directivity(dir: &Path) {
             axes.push(map_axes(&title, &ylabel, r == 1, c == 0));
         }
     }
-    let zone = pt(6.0) + crate::plot::colour_bar_width(pt(7.0), &steps_of(-15.0, 15.0, 5.0), "level re on axis (dB)", 7.5, EN);
+    let zone = pt(6.0) + crate::plot::colour_bar_width(pt(7.0), &steps_of(-15.0, 0.0, 5.0), "level re on axis (dB)", 7.5, EN);
     let svg = render(W, 3.6, |root| {
         let gw = (W * crate::plot::PPI) as i32 - zone;
         let (grid, _) = root.split_horizontally(gw);

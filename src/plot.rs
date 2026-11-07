@@ -137,6 +137,21 @@ pub fn diverging(t: f64) -> RGBColor {
     )
 }
 
+/// Range (dB) of the directivity maps: the level off the axis, relative to the axis, reaches a few
+/// dB above it at most.
+pub const MAP_RANGE: (f64, f64) = (-18.0, 3.0);
+
+/// Colour of a level relative to the axis on the directivity maps: the diverging map centred on
+/// 0 dB, clipped to [`MAP_RANGE`].
+pub fn level_colour(v: f64) -> RGBColor {
+    diverging((v.clamp(MAP_RANGE.0, MAP_RANGE.1) + 18.0) / 36.0)
+}
+
+/// The same colours along a colour bar, ``t`` in [0, 1] over [`MAP_RANGE`].
+pub fn level_bar(t: f64) -> RGBColor {
+    level_colour(MAP_RANGE.0 + t * (MAP_RANGE.1 - MAP_RANGE.0))
+}
+
 /// Grey map, white to black.
 pub fn greys(t: f64) -> RGBColor {
     lerp_colors(&[(0xff, 0xff, 0xff), (0xbd, 0xbd, 0xbd), (0x73, 0x73, 0x73), (0x00, 0x00, 0x00)], t)
