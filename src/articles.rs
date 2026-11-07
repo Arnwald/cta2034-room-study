@@ -221,6 +221,105 @@ pub fn index_library(s: &Summary, dir: &Path) {
     save_web(&svg, dir, "index-library");
 }
 
+/// The level above and below the axis relative to the axis (dB), ``[angle][freq]``, angles from
+/// -90 to +90 degrees in the vertical plane.
+fn vertical_map(layout: &crate::speaker::Layout, kind: Kind, f: &[f64], angles: &[f64]) -> Vec<Vec<f64>> {
+    let dirs: Vec<crate::Vec3> = angles.iter().map(|a| [0.0, a.to_radians().sin(), a.to_radians().cos()]).collect();
+    let far = FarField::new(layout, f);
+    let on = far.on_axis();
+    let p = power(&crossover::filters(kind, f, layout, &on), &far.responses(&dirs));
+    let axis = angles.iter().position(|a| *a == 0.0).unwrap();
+    (0..dirs.len()).map(|d| (0..f.len()).map(|j| db10(p.row(d)[j] as f64) - db10(p.row(axis)[j] as f64)).collect()).collect()
+}
+
+/// Draws maps of the vertical directivity, one per axes, and a colour bar in the area ``bar``.
+fn maps<DB: DrawingBackend>(
+    root: &DrawingArea<DB, plotters::coord::Shift>,
+    panels: &[DrawingArea<DB, plotters::coord::Shift>],
+    axes: &[Axes],
+    data: &[Vec<Vec<f64>>],
+    f: &[f64],
+    bar_x: i32,
+    span: Option<(i32, i32)>,
+) where
+    DB::ErrorType: 'static,
+{
+    let lf: Vec<f64> = f.iter().map(|x| x.log10()).collect();
+    let (mut top, mut bottom) = (i32::MAX, 0);
+    for ((ax, area), m) in axes.iter().zip(panels).zip(data) {
+        let mut ch = ax.build(area);
+        let pixels: Vec<RGBColor> = (0..m.len()).rev().flat_map(|a| m[a].iter().map(|v| crate::plot::diverging((v + 18.0) / 36.0)).collect::<Vec<_>>()).collect();
+        let marker = crate::plot::raster(f.len(), m.len(), &pixels);
+        ch.draw_series(once(Rectangle::new([(lf[0], -90.0), (lf[f.len() - 1], 90.0)], marker.filled()))).unwrap();
+        outline(&ch);
+        let (_, ys) = ch.plotting_area().get_pixel_range();
+        top = top.min(ys.start);
+        bottom = bottom.max(ys.end);
+    }
+    let (top, bottom) = span.unwrap_or((top, bottom));
+    let h = ((bottom - top) as f64 * 0.8) as i32;
+    crate::plot::colour_bar(root, (bar_x, (top + bottom) / 2 - h / 2), (pt(7.0), h), crate::plot::diverging, (-18.0, 18.0), &steps_of(-15.0, 15.0, 5.0), "level re on axis (dB)", 7.5, EN);
+}
+
+fn map_axes(title: &str, ylabel: &str, show_x: bool, show_y: bool) -> Axes {
+    let mut a = Axes::freq(EN, title, (300.0, 20000.0), (-90.0, 90.0), ylabel);
+    a.x_ticks = vec![1000.0, 10000.0];
+    a.y_ticks = steps_of(-90.0, 90.0, 45.0);
+    a.show_xlabels = show_x;
+    a.show_ylabels = show_y;
+    a.x_grid = false;
+    a.y_grid = false;
+    a.title_size = 8.0;
+    a
+}
+
+/// The vertical directivity of the two-way, plain dome and waveguide, with LR2, LR4 and brickwall.
+pub fn directivity(dir: &Path) {
+    let f = log_grid(300.0, 20000.0, 48);
+    let angles: Vec<f64> = (0..=180).map(|i| -90.0 + i as f64).collect();
+    let kinds = [Kind::Lr2, Kind::Lr4, Kind::Fir];
+    let layouts = [two_way(), crate::speaker::two_way_waveguide()];
+    let data: Vec<Vec<Vec<f64>>> = layouts.iter().flat_map(|l| kinds.iter().map(|k| vertical_map(l, *k, &f, &angles)).collect::<Vec<_>>()).collect();
+    let mut axes = Vec::new();
+    for (r, name) in ["plain dome", "dome in a waveguide"].iter().enumerate() {
+        for (c, k) in kinds.iter().enumerate() {
+            let title = if r == 0 { kind_label(EN, *k) } else { String::new() };
+            let ylabel = if c == 0 { format!("{name}\nvertical angle (deg)") } else { String::new() };
+            axes.push(map_axes(&title, &ylabel, r == 1, c == 0));
+        }
+    }
+    let zone = pt(6.0) + crate::plot::colour_bar_width(pt(7.0), &steps_of(-15.0, 15.0, 5.0), "level re on axis (dB)", 7.5, EN);
+    let svg = render(W, 3.6, |root| {
+        let gw = (W * crate::plot::PPI) as i32 - zone;
+        let (grid, _) = root.split_horizontally(gw);
+        let p = layout(&grid, 2, 3, &mut axes);
+        maps(root, &p, &axes, &data, &f, gw + pt(6.0), None);
+    });
+    save_web(&svg, dir, "directivity");
+}
+
+/// The vertical directivity of the seven loudspeakers of the library with LR4 crossovers.
+pub fn directivity_library(dir: &Path) {
+    let f = log_grid(300.0, 20000.0, 48);
+    let angles: Vec<f64> = (0..=180).map(|i| -90.0 + i as f64).collect();
+    let layouts = crate::speaker::library();
+    let data: Vec<Vec<Vec<f64>>> = layouts.iter().map(|l| vertical_map(l, Kind::Lr4, &f, &angles)).collect();
+    let mut axes = Vec::new();
+    for i in 0..8 {
+        let (r, c) = (i / 4, i % 4);
+        let title = layouts.get(i).map(|l| family_label(EN, &l.name).replace('\n', " ")).unwrap_or_default();
+        axes.push(map_axes(&title, if c == 0 { "vertical angle (deg)" } else { "" }, r == 1, c == 0));
+    }
+    let svg = render(W, 3.6, |root| {
+        let p = layout(root, 2, 4, &mut axes);
+        // The eighth cell holds the colour bar.
+        let (bx, by) = p[7].get_base_pixel();
+        let (_, bh) = p[7].dim_in_pixel();
+        maps(root, &p[..7], &axes[..7], &data, &f, bx + pt(10.0), Some((by + pt(14.0), by + bh as i32 - pt(22.0))));
+    });
+    save_web(&svg, dir, "directivity-library");
+}
+
 /// Every figure of both articles: ``dir/standard-problems`` and ``dir/standard-proposal``.
 pub fn all(study: &Study, s: &Summary, dir: &Path) {
     let a = dir.join("standard-problems");
@@ -228,7 +327,9 @@ pub fn all(study: &Study, s: &Summary, dir: &Path) {
     averaging(&a);
     sound_power(study, &a);
     pir_vs_rooms(study, &a);
+    directivity(&a);
     let b = dir.join("standard-proposal");
+    directivity_library(&b);
     sp_library(s, &b);
     prediction_library(s, &b);
     index_library(s, &b);
