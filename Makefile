@@ -1,21 +1,19 @@
-PYTHON ?= .venv/bin/python
-
 .PHONY: all test study figures paper clean
 
 all: study figures paper
 
 test:
-	$(PYTHON) -m pytest -q
+	cargo test --release
 
 study:
-	$(PYTHON) scripts/run_study.py
+	cargo run --release --bin study
 
 figures:
-	$(PYTHON) scripts/make_figures.py
-	$(PYTHON) scripts/make_figures.py fr
+	cargo run --release --bin figures
 
 paper:
 	cd paper && latexmk -pdf -interaction=nonstopmode main.tex main_fr.tex
 
 clean:
+	cargo clean
 	cd paper && latexmk -C main.tex main_fr.tex

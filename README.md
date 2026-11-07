@@ -153,29 +153,36 @@ deviation in dB from the straight line that fits the curve from 600 Hz to 8 kHz)
 
 ## Reproduce
 
-Python 3.10+:
+Rust (stable) and, for the report, a LaTeX distribution with latexmk:
 
 ```sh
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-make test      # unit tests
-make study     # every simulated quantity (about 2 minutes, results/study.npz)
+make test      # unit and integration tests
+make study     # every simulated quantity (about 20 seconds on 8 cores, results/study.bin)
 make figures   # figures and tables in paper/, in English and in French
-make paper     # paper/main.pdf and paper/main_fr.pdf (needs a LaTeX distribution with latexmk)
+make paper     # paper/main.pdf and paper/main_fr.pdf
 ```
+
+The 300 rooms and the three named ones are in `data/rooms.json`.
+`cargo run --release --bin study -- --npy` also writes the main arrays as NumPy files in
+`results/npy/`.
 
 ## Layout
 
 | path | content |
 |---|---|
-| `inroom/speaker.py` | the two layouts, far field over the sphere with Distributed Edge Dipole diffraction |
-| `inroom/directivity.py` | piston, dome and constant-directivity (waveguide) radiators |
-| `inroom/crossover.py` | LR2, LR4, LR8 and brickwall FIR targets, on-axis equalization |
-| `inroom/cta2034.py` | the CTA-2034-A curves and the weight they give to each of the 70 directions |
-| `inroom/room.py` | shoebox rooms: images, absorption, scattering, rays and the diffuse field |
-| `inroom/ensemble.py` | materials, the random ensemble, three named rooms |
-| `inroom/study.py` | rooms as weights over directions, loudspeaker variants |
-| `inroom/analysis.py` | in-room responses, fitted weights, prediction errors, colouration metrics |
-| `scripts/` | the simulation and the figures |
+| `src/speaker.rs` | the two layouts, far field over the sphere with Distributed Edge Dipole diffraction |
+| `src/directivity.rs` | piston, dome and constant-directivity (waveguide) radiators |
+| `src/crossover.rs` | LR2, LR4, LR8 and brickwall FIR targets, on-axis equalization |
+| `src/cta2034.rs` | the CTA-2034-A curves and the weight they give to each of the 70 directions |
+| `src/room.rs` | shoebox rooms: images, absorption, scattering, rays and the diffuse field |
+| `src/ensemble.rs` | materials, the random ensemble, three named rooms |
+| `src/study.rs` | rooms as weights over directions, loudspeaker variants |
+| `src/analysis.rs` | in-room responses, fitted weights, prediction errors, colouration metrics |
+| `src/figures.rs`, `src/tables.rs`, `src/plot.rs` | the report's figures (SVG drawn with plotters, converted to PDF and PNG) and tables |
+| `src/signal.rs`, `src/special.rs`, `src/sphere.rs` | frequency grids, minimum phase, smoothing, special functions, splines, directions on the sphere |
+| `src/bin/` | `study` (the simulation) and `figures` (figures and tables) |
+| `tests/` | integration tests; the modules carry their unit tests |
+| `data/` | the setups of the study (`rooms.json`) and the DejaVu Sans font of the figures |
 | `paper/` | LaTeX report in English (`main.tex`) and French (`main_fr.tex`), figures and generated tables (French ones in `fr/`) |
 
 ## Notes
@@ -183,8 +190,10 @@ make paper     # paper/main.pdf and paper/main_fr.pdf (needs a LaTeX distributio
 The curves follow CTA-2034-A as it is commonly implemented (ER as the mean of its five bounces).
 CTA-2034-B was published in July 2024; what it changed was not checked here. The rooms are simulated,
 with textbook coefficients; the steady-state energy is a spatial average (paths added in power).
-The colouration metrics are physical measures, not perceptual ones.
+The colouration metrics are physical measures, not perceptual ones. The study was first written
+in Python; the Rust version reproduces its tables and quoted numbers exactly.
 
 ## License
 
-Code under the MIT license.
+Code under the MIT license. The DejaVu Sans font in `data/fonts/` has its own license
+(`data/fonts/LICENSE_DEJAVU`).

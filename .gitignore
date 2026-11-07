@@ -1,10 +1,6 @@
-__pycache__/
-.pytest_cache/
-.venv/
 .DS_Store
-results/cache/
-results/*.npz
-results/*.log
+/target/
+/results/
 paper/*.aux
 paper/*.log
 paper/*.out
