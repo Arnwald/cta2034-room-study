@@ -49,7 +49,11 @@ formula, is [`paper/main.pdf`](paper/main.pdf); a French version is
   listener 2.0–3.8 m away, ears 1.0–1.25 m high. Plaster or plasterboard, a window with curtains,
   parquet, tiles (with or without a rug) or carpet, 6–16 m² of furniture absorption; a quarter of the
   rooms has absorbing panels at the side walls' first reflection points. T60 at 1 kHz: 0.40 s
-  median (0.26–0.68 s).
+  median (0.26–0.68 s). They stand for the domestic rooms the PIR was built for: living-room
+  dimensions and listening distances, reverberation times in the range measured in furnished
+  dwellings, and first reflections that leave the loudspeaker within the standard's own angles, which
+  nothing was tuned to (except the wall behind the loudspeakers, reached at 137–166° where the
+  standard looks at ±90° and 180°).
 - **Room model**: specular images up to the third order, with their exact directions, absorption and
   scattering, and a diffuse field fed by the energy each direction scatters, traced through the box
   (the Hopkins-Stryker room term with a direction-dependent first part). It agrees with a full image
@@ -107,19 +111,26 @@ formula, is [`paper/main.pdf`](paper/main.pdf); a French version is
 
 ### Linkwitz-Riley against brickwall FIR
 
-![The floor and ceiling bounces of one room, and the same room's averaged response](paper/figures/paths.png)
+![The two measures for each crossover in one room: the averaged response (top) and the floor and ceiling bounces taken one by one (bottom)](paper/figures/methods.png)
 
 A crossover's defects lie within about an octave of its frequency, and in each direction at a
 frequency of its own (the drivers cancel where their path difference is half a wavelength). Adding
 directions in power, as the in-room curve and every CTA-2034 curve do, adds notches at different
-frequencies and fills them. Two measures, both within one octave of the 2.2 kHz crossover (RMS
-deviation in dB from the straight line that fits the curve from 600 Hz to 8 kHz):
+frequencies and fills them. Two measures, both built on $D[X]$, the RMS deviation of a response $X$
+(in dB) from the straight line that fits it from 600 Hz to 8 kHz, taken within one octave of the
+2.2 kHz crossover:
 
-- the **averaged curve** (the rooms' steady-state response, the PIR);
-- the **paths**: the same deviation for the response in each direction, before any averaging,
-  weighted by the energy the path brings to the listener; the weights are the same for every
-  crossover (the power averaged over the four), so that a notch does not lower the weight of the path
-  it colours.
+- the **averaged curve** adds the paths in power first, as the room and every CTA-2034 curve do, and
+  measures the sum: $D_\text{avg} = D\left[\sum_i W_i\,P(\Omega_i)\right]$, with $W_i$ the weight of path
+  $i$ and $P(\Omega_i)$ the loudspeaker's power in the direction the path leaves in;
+- the **colouration of the paths** keeps each path's own response and averages only the deviations:
+  $C = \sum_i \bar w_i\,D[P(\Omega_i)] \big/ \sum_i \bar w_i$, each path weighted by the energy it brings
+  to the listener. The weights are the same for every crossover (the power averaged over the four), so
+  that a notch does not lower the weight of the path it colours.
+
+$D_\text{avg}$ describes the energy the listener receives. $C$ describes what the loudspeaker sends into
+each reflection: no microphone at the listening position measures it, since at the ear the paths
+arrive as one sum, and how much of it is heard is for listening tests (section 6.5 of the report).
 
 | Plain dome (waveguide) | LR2 | LR4 | LR8 | brickwall FIR |
 |---|---|---|---|---|
@@ -134,12 +145,15 @@ deviation in dB from the straight line that fits the curve from 600 Hz to 8 kHz)
 
 - **The averages flatter the low-slope crossover.** In one living room the floor bounce of the LR4
   two-way has a notch 41 dB deep and 611 Hz wide at −6 dB (745 Hz with LR2); the room's averaged
-  response keeps a dip of 2 to 3 dB. Over the 300 rooms the averaging divides the colouration of the
+  response keeps a dip of 2.0 to 3.2 dB whatever the crossover. CTA-2034's Early Reflections curve does
+  the same: with LR2 its six floor and ceiling directions have notches 10 to 23 dB below the axis,
+  spread from 1.6 to 2.9 kHz, and the curve dips 1.6 dB below its straight line; with the brickwall
+  every notch falls at 2.2 kHz and the curve keeps 2.6 dB. Over the 300 rooms the averaging divides the colouration of the
   floor and ceiling bounces by 3.4 with LR4, by 5 with LR2, by 1.4 with the brickwall: the averaged
   curve and the PIR rank LR2 as the smoothest Linkwitz-Riley crossover, while its reflections are the
   most coloured.
-- **Path by path, the brickwall removes about 60 % of the colouration of the floor and ceiling
-  bounces** (59 % with the plain dome, 60 % with the waveguide), 38 and 53 % for all the first
+- **Path by path, the brickwall removes about 60 % of the colouration the loudspeaker sends into the
+  floor and ceiling bounces** (59 % with the plain dome, 60 % with the waveguide), 38 and 53 % for all the first
   reflections, 28 and 50 % for every path. Its notches are as deep, ten to thirteen times narrower (48
   Hz instead of 611 Hz at the floor bounce): about a thirtieth of an octave instead of a third.
 - **The averaged curve improves only when the directivities match.** With the plain dome the 6.5-inch
@@ -165,6 +179,8 @@ Five more loudspeakers join the two two-ways (a coaxial, an MTM, the horizontal 
 the turntable study, a three-way and a four-way tower standing on the floor), each with the four
 crossovers, every path taken from each driver's own position. Section 7 of the report:
 
+![Vertical directivity of the seven loudspeakers with LR4 crossovers](paper/figures/library_directivity.png)
+
 | | CTA-2034 | proposed |
 |---|---|---|
 | sound power from the two orbits, error against the sphere (worst crossover) | 0.34–1.57 dB RMS, up to 3.2 dB | 0.03–0.07 dB RMS, rebuilt driver by driver with phase |
@@ -177,7 +193,9 @@ crossovers, every path taken from each driver's own position. Section 7 of the r
   weights with the rebuilt sound power 1.64–2.64 dB: the weights matter most, the sound power next.
 - The orbit index keeps the standard's early-reflection directions but reads each one's roughness
   (deviation from itself smoothed over an octave) instead of averaging their power, weighted by the
-  energy each reflection brings. The averaged curves keep flattering the low slopes: the two-way's PIR
+  energy each reflection brings. Like the colouration of the paths it describes the loudspeaker: the
+  correlation shows that the two orbits hold what the rooms' path-by-path colouration reads; it does
+  not show that the index predicts what is heard. The averaged curves keep flattering the low slopes: the two-way's PIR
   is smoother with LR2 than with the brickwall, its reflections are not.
 - Not every loudspeaker gains from a brickwall: the MTM's two woofers lobe below the crossover and a
   steep filter lets them play up to it; the three-way monitor's midrange dome beams where its tweeter
@@ -222,7 +240,7 @@ The 300 rooms and the three named ones are in `data/rooms.json`.
 | `src/bin/` | `study` (the simulation), `coherent` (the phases at the ears), `library` and `standard` (the seven loudspeakers), `figures` (figures and tables) |
 | `tests/` | integration tests; the modules carry their unit tests |
 | `data/` | the setups of the study (`rooms.json`) and the DejaVu Sans font of the figures |
-| `src/articles.rs`, `articles/figures/` | the blog articles' figures |
+| `src/articles.rs`, `articles/figures/` | the blog articles' figures (those the report shares are drawn in `src/figures.rs`) |
 | `paper/` | LaTeX report in English (`main.tex`) and French (`main_fr.tex`), figures and generated tables (French ones in `fr/`) |
 
 ## Notes
@@ -231,7 +249,12 @@ The curves follow CTA-2034-A as it is commonly implemented (ER as the mean of it
 CTA-2034-B was published in July 2024; what it changed was not checked here. The rooms are simulated,
 with textbook coefficients; the steady-state energy is a spatial average (paths added in power), the
 phases being taken into account only in the coherent analysis, at points without a head.
-The colouration metrics are physical measures, not perceptual ones. The study was first written
+The colouration metrics are physical measures, not perceptual ones: the colouration of the paths and
+the orbit index describe what the loudspeaker sends into the reflections rather than the pressure at
+the ear, where a floor bounce 2 ms after the direct sound fuses with it; whether hearing weighs each
+reflection's colouration this way is for listening tests. The rooms stand for ordinary living rooms;
+larger rooms, dedicated rooms treated on every surface and loudspeakers on the long wall are outside
+the ensemble. The study was first written
 in Python; the Rust version reproduces its tables and quoted numbers exactly.
 
 ## License
