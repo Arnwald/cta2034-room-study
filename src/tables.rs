@@ -332,6 +332,28 @@ pub fn all(study: &Study, lang: Lang, dir: &Path, spectra: &Spectra, coh: Option
         }
     }
 
+    // The notches the Early Reflections curve averages: each floor and ceiling direction's depth
+    // below the axis and frequency, the curve's own dip below its straight line.
+    for k in KINDS {
+        let (dirs, dip) = crate::figures::er_notches(k);
+        let (dn, dx) = min_max(&dirs.iter().map(|d| d.0).collect::<Vec<_>>());
+        let (fn_, fx) = min_max(&dirs.iter().map(|d| d.1 / 1000.0).collect::<Vec<_>>());
+        numbers.insert(format!("erDir{}DepthMin", kind_word(k)), num(dn, 0));
+        numbers.insert(format!("erDir{}DepthMax", kind_word(k)), num(dx, 0));
+        numbers.insert(format!("erDir{}FreqMin", kind_word(k)), num(fn_, 1));
+        numbers.insert(format!("erDir{}FreqMax", kind_word(k)), num(fx, 1));
+        numbers.insert(format!("erCurve{}Dip", kind_word(k)), num(dip, 1));
+    }
+
+    // The living room's averaged response: its deepest dip below the straight line.
+    let living = study.named_index("living");
+    for (layout, tag) in [("two_way", "Dome"), ("two_way_wg", "Wg")] {
+        for k in KINDS {
+            let r = study.room_response(&name(layout, "upright", k), Which::Steady, living);
+            numbers.insert(format!("living{tag}{}Dip", kind_word(k)), num(analysis::notch_depth(f, &r), 1));
+        }
+    }
+
     if let Some(coh) = coh {
         coherent(coh, lang, dir, &mut numbers);
     }

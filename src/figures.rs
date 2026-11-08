@@ -1145,6 +1145,243 @@ pub fn interference_summary(c: &Ctx, coh: &CoherentResults) {
     save(&svg, c.dir, "interference_summary");
 }
 
+// ---------------------------------------------------------------------------------------------
+// Figures shared with the blog articles (src/articles.rs): any width, either language.
+
+/// The six floor and ceiling directions of CTA-2034's Early Reflections (vertical orbit, degrees).
+pub const ER_VERTICAL: [i32; 6] = [-20, -30, -40, 40, 50, 60];
+
+/// The plain-dome two-way's power in the 70 directions of the orbits with crossover ``kind``, on
+/// a 1/96-octave grid from 300 Hz to 20 kHz: ``(freqs, power[direction][freq])``.
+pub fn two_way_orbits(kind: Kind) -> (Vec<f64>, crate::mat::Mat<f32>) {
+    let f = log_grid(300.0, 20000.0, 96);
+    let layout = two_way();
+    let far = FarField::new(&layout, &f);
+    let on = far.on_axis();
+    let p = power(&crossover::filters(kind, &f, &layout, &on), &far.responses(&cta2034::directions()));
+    (f, p)
+}
+
+/// The notches the Early Reflections curve averages (plain-dome two-way): for each of its floor
+/// and ceiling directions, the deepest point of the response below the axis within one octave of
+/// the crossover and its frequency; and the curve's deepest dip below its straight line.
+pub fn er_notches(kind: Kind) -> (Vec<(f64, f64)>, f64) {
+    let (f, p) = two_way_orbits(kind);
+    let axis = cta2034::index_of('h', 0);
+    let band: Vec<usize> = (0..f.len()).filter(|&j| f[j] >= analysis::CROSSOVER_BAND.0 && f[j] <= analysis::CROSSOVER_BAND.1).collect();
+    let dirs = ER_VERTICAL
+        .iter()
+        .map(|a| {
+            let d = cta2034::index_of('v', *a);
+            band.iter().map(|&j| (db10(p.row(axis)[j] as f64) - db10(p.row(d)[j] as f64), f[j])).fold((f64::MIN, 0.0), |m, x| if x.0 > m.0 { x } else { m })
+        })
+        .collect();
+    let er = cta2034::kernel("er");
+    let curve: Vec<f64> = (0..f.len()).map(|j| er.iter().enumerate().map(|(d, w)| w * p.row(d)[j] as f64).sum()).collect();
+    (dirs, analysis::notch_depth(&f, &curve))
+}
+
+/// The floor and ceiling directions of the Early Reflections curve, each with its notch, and the
+/// curve that averages them with the walls' directions (plain-dome two-way, LR2, LR4, brickwall).
+pub fn averaging_svg(lang: Lang, w: f64, h: f64) -> String {
+    let kinds = [Kind::Lr2, Kind::Lr4, Kind::Fir];
+    let vertical: Vec<usize> = ER_VERTICAL.iter().map(|a| cta2034::index_of('v', *a)).collect();
+    let axis = cta2034::index_of('h', 0);
+    let er = cta2034::kernel("er");
+    let mut axes: Vec<Axes> = kinds
+        .iter()
+        .enumerate()
+        .map(|(i, k)| {
+            let ylabel = if i == 0 { lang.t("level re on axis (dB)", "niveau relatif à l’axe (dB)") } else { String::new() };
+            let mut a = Axes::freq(lang, &kind_label(lang, *k), (700.0, 7000.0), (-30.0, 4.0), &ylabel);
+            a.x_ticks = vec![1000.0, 2000.0, 5000.0];
+            a.show_ylabels = i == 0;
+            a
+        })
+        .collect();
+    render(w, h, |root| {
+        let p = layout(root, 1, 3, &mut axes);
+        for (i, k) in kinds.iter().enumerate() {
+            let ax = &axes[i];
+            let mut ch = ax.build(&p[i]);
+            let (f, pw) = two_way_orbits(*k);
+            let rel = |d: usize| -> Vec<f64> { (0..f.len()).map(|j| pw.row(d)[j] as f64 / pw.row(axis)[j] as f64).collect() };
+            let col = kind_color(*k);
+            for &d in &vertical {
+                line(&mut ch, ax, &f, &db(&rel(d)), col.mix(0.6), 0.7, Dash::Solid, None);
+            }
+            let curve: Vec<f64> = (0..f.len()).map(|j| er.iter().enumerate().map(|(d, w)| w * pw.row(d)[j] as f64).sum::<f64>() / pw.row(axis)[j] as f64).collect();
+            line(&mut ch, ax, &f, &db(&curve), INK, 1.6, Dash::Solid, None);
+            if i == 0 {
+                let entries = vec![
+                    (Swatch::Line(tint(col, 0.6), 0.7, Dash::Solid), lang.t("its six floor and ceiling directions", "ses six directions du sol et du plafond")),
+                    (Swatch::Line(INK, 1.6, Dash::Solid), lang.t("the Early Reflections curve", "la courbe ER")),
+                ];
+                legend_in(root, &ch, Place::LowerLeft, &entries, 1, 6.5, Ground::Plain);
+            }
+        }
+    })
+}
+
+/// The two ways of reading the colouration, for each crossover: the deviation of the living room's
+/// averaged response (top) and of its floor and ceiling bounces taken one by one (bottom), with the
+/// medians of the 300 rooms (plain-dome two-way).
+pub fn methods_svg(study: &Study, spectra: &Spectra, lang: Lang, w: f64, h: f64) -> String {
+    use crate::analysis::{line_residual, local_anomaly, ANOMALY_BAND};
+    let fs = study.freqs();
+    let living = study.named_index("living");
+    let (fp, per_layout) = spectra;
+    let paths = &per_layout.iter().find(|(l, _)| l == "two_way").unwrap().1;
+    let weights = analysis::fit_weights(study, Sp::Sphere, Which::Steady);
+    let band = |f: &[f64]| f.iter().cloned().filter(|x| *x >= ANOMALY_BAND.0 && *x <= ANOMALY_BAND.1).collect::<Vec<f64>>();
+    let rooms = |x: f64| format!("{}{} {} dB", lang.t("300 rooms", "300 pièces"), lang.colon(), lang.num(x, 1));
+    let mut axes = Vec::new();
+    for r in 0..2 {
+        for (c, k) in KINDS.iter().enumerate() {
+            let ylabel = match (r, c) {
+                (0, 0) => lang.t("the room's averaged\nresponse (dB)", "réponse moyennée\nde la pièce (dB)"),
+                (1, 0) => lang.t("floor and ceiling\nbounces (dB)", "rebonds sur le sol\net le plafond (dB)"),
+                _ => String::new(),
+            };
+            let title = if r == 0 { kind_label(lang, *k) } else { String::new() };
+            let mut a = Axes::freq(lang, &title, (600.0, 8000.0), (-32.0, 6.0), &ylabel);
+            a.x_ticks = vec![1000.0, 2000.0, 5000.0];
+            a.y_ticks = steps(-30.0, 0.0, 10.0);
+            a.show_xlabels = r == 1;
+            a.show_ylabels = c == 0;
+            a.title_size = 8.0;
+            axes.push(a);
+        }
+    }
+    render(w, h, |root| {
+        let p = layout(root, 2, 4, &mut axes);
+        for (c, k) in KINDS.iter().enumerate() {
+            let v = name("two_way", "upright", *k);
+            let col = kind_color(*k);
+            // Top: the living room's steady-state response, its deviation from the straight line.
+            let ax = &axes[c];
+            let mut ch = ax.build(&p[c]);
+            let (res, _) = line_residual(fs, &study.room_response(&v, Which::Steady, living), ANOMALY_BAND);
+            line(&mut ch, ax, &band(fs), &res, col, LW, Dash::Solid, None);
+            let med = crate::special::median(&study.random().map(|r| local_anomaly(fs, &study.room_response(&v, Which::Steady, r))).collect::<Vec<_>>());
+            label(root, &rooms(med), ch.backend_coord(&(650.0f64.log10(), -30.0)), 7.0, &INK, HPos::Left, VPos::Bottom, false);
+            // Bottom: the floor and ceiling bounces, each on its own.
+            let ax = &axes[4 + c];
+            let mut ch = ax.build(&p[4 + c]);
+            let per = &paths.iter().find(|(kk, _)| kk == k).unwrap().1;
+            for (path, dash) in [("floor", Dash::Solid), ("ceiling", Dash::Dashed)] {
+                let pw = &per.iter().find(|x| x.0 == path).unwrap().1;
+                let (res, _) = line_residual(fp, pw, ANOMALY_BAND);
+                line(&mut ch, ax, &band(fp), &res, col, LW, dash, None);
+            }
+            let vert = colouration_values(study, &v, weights)[4];
+            label(root, &rooms(vert), ch.backend_coord(&(650.0f64.log10(), -30.0)), 7.0, &INK, HPos::Left, VPos::Bottom, false);
+            if c == 3 {
+                let entries = vec![(Swatch::Line(INK, LW, Dash::Solid), surf_label(lang, "floor")), (Swatch::Line(INK, LW, Dash::Dashed), surf_label(lang, "ceiling"))];
+                legend_at(root, ch.backend_coord(&(2600.0f64.log10(), -9.0)), &entries, 1, 6.5, Ground::Plain);
+            }
+        }
+    })
+}
+
+/// The level above and below the axis relative to the axis (dB), ``[angle][freq]``, angles from
+/// -90 to +90 degrees in the vertical plane.
+pub fn vertical_map(layout: &Layout, kind: Kind, f: &[f64], angles: &[f64]) -> Vec<Vec<f64>> {
+    let dirs: Vec<Vec3> = angles.iter().map(|a| [0.0, a.to_radians().sin(), a.to_radians().cos()]).collect();
+    let far = FarField::new(layout, f);
+    let on = far.on_axis();
+    let p = power(&crossover::filters(kind, f, layout, &on), &far.responses(&dirs));
+    let axis = angles.iter().position(|a| *a == 0.0).unwrap();
+    (0..dirs.len()).map(|d| (0..f.len()).map(|j| db10(p.row(d)[j] as f64) - db10(p.row(axis)[j] as f64)).collect()).collect()
+}
+
+/// The axes of a vertical directivity map, 300 Hz to 20 kHz and -90 to +90 degrees.
+pub fn map_axes(lang: Lang, title: &str, ylabel: &str, show_x: bool, show_y: bool) -> Axes {
+    let mut a = Axes::freq(lang, title, (300.0, 20000.0), (-90.0, 90.0), ylabel);
+    a.x_ticks = vec![1000.0, 10000.0];
+    a.y_ticks = steps(-90.0, 90.0, 45.0);
+    a.show_xlabels = show_x;
+    a.show_ylabels = show_y;
+    a.x_grid = false;
+    a.y_grid = false;
+    a.title_size = 8.0;
+    a
+}
+
+/// The colour bar of the directivity maps: its ticks and its label.
+pub fn map_bar(lang: Lang) -> (Vec<f64>, String) {
+    (steps(-15.0, 0.0, 5.0), lang.t("level re on axis (dB)", "niveau relatif à l’axe (dB)"))
+}
+
+/// Draws directivity maps, one per axes, and their colour bar at ``bar_x``, ``bar_w`` wide, its
+/// label ``size`` points, over 80 % of ``span`` (by default the maps' height).
+#[allow(clippy::too_many_arguments)]
+pub fn directivity_maps<DB: DrawingBackend>(
+    root: &DrawingArea<DB, plotters::coord::Shift>,
+    panels: &[DrawingArea<DB, plotters::coord::Shift>],
+    axes: &[Axes],
+    data: &[Vec<Vec<f64>>],
+    f: &[f64],
+    (bar_x, bar_w, size): (i32, i32, f64),
+    span: Option<(i32, i32)>,
+    lang: Lang,
+) where
+    DB::ErrorType: 'static,
+{
+    let lf: Vec<f64> = f.iter().map(|x| x.log10()).collect();
+    let (mut top, mut bottom) = (i32::MAX, 0);
+    for ((ax, area), m) in axes.iter().zip(panels).zip(data) {
+        let mut ch = ax.build(area);
+        let pixels: Vec<RGBColor> = (0..m.len()).rev().flat_map(|a| m[a].iter().map(|v| plot::level_colour(*v)).collect::<Vec<_>>()).collect();
+        let marker = plot::raster(f.len(), m.len(), &pixels);
+        ch.draw_series(once(Rectangle::new([(lf[0], -90.0), (lf[f.len() - 1], 90.0)], marker.filled()))).unwrap();
+        outline(&ch);
+        let (_, ys) = ch.plotting_area().get_pixel_range();
+        top = top.min(ys.start);
+        bottom = bottom.max(ys.end);
+    }
+    let (top, bottom) = span.unwrap_or((top, bottom));
+    let h = ((bottom - top) as f64 * 0.8) as i32;
+    let (ticks, text) = map_bar(lang);
+    colour_bar(root, (bar_x, (top + bottom) / 2 - h / 2), (bar_w, h), plot::level_bar, plot::MAP_RANGE, &ticks, &text, size, lang);
+}
+
+/// The vertical directivity of the seven loudspeakers of the library with LR4 crossovers, the
+/// colour bar in the eighth cell (``bar_w`` wide, its label ``size`` points).
+pub fn library_directivity_svg(lang: Lang, w: f64, h: f64, bar_w: i32, size: f64) -> String {
+    let f = log_grid(300.0, 20000.0, 48);
+    let angles: Vec<f64> = (0..=180).map(|i| -90.0 + i as f64).collect();
+    let layouts = crate::speaker::library();
+    let data: Vec<Vec<Vec<f64>>> = layouts.iter().map(|l| vertical_map(l, Kind::Lr4, &f, &angles)).collect();
+    let ylabel = lang.t("vertical angle (deg)", "angle vertical (°)");
+    let mut axes = Vec::new();
+    for i in 0..8 {
+        let (r, c) = (i / 4, i % 4);
+        let title = layouts.get(i).map(|l| crate::library_figures::family_label(lang, &l.name).replace('\n', " ")).unwrap_or_default();
+        axes.push(map_axes(lang, &title, if c == 0 { &ylabel } else { "" }, r == 1, c == 0));
+    }
+    render(w, h, |root| {
+        let p = layout(root, 2, 4, &mut axes);
+        // The eighth cell holds the colour bar.
+        let (bx, by) = p[7].get_base_pixel();
+        let (_, bh) = p[7].dim_in_pixel();
+        directivity_maps(root, &p[..7], &axes[..7], &data, &f, (bx + pt(10.0), bar_w, size), Some((by + pt(14.0), by + bh as i32 - pt(22.0))), lang);
+    })
+}
+
+/// The report's versions of the figures shared with the articles.
+pub fn averaging(c: &Ctx) {
+    save(&averaging_svg(c.lang, W2, 2.7), c.dir, "averaging");
+}
+
+pub fn methods(c: &Ctx, spectra: &Spectra) {
+    save(&methods_svg(c.study, spectra, c.lang, W2, 4.0), c.dir, "methods");
+}
+
+pub fn library_directivity(c: &Ctx) {
+    save(&library_directivity_svg(c.lang, W2, 3.8, pt(9.0), DESC), c.dir, "library_directivity");
+}
+
 /// Every figure of the report in one language.
 pub fn all(study: &Study, setups: &[Setup], lang: Lang, dir: &Path, spectra: &Spectra, coh: Option<&CoherentResults>) {
     let c = Ctx { study, lang, dir, setups };
@@ -1162,6 +1399,9 @@ pub fn all(study: &Study, setups: &[Setup], lang: Lang, dir: &Path, spectra: &Sp
     vertical_colouration(&c);
     colouration(&c);
     polar_maps(&c);
+    averaging(&c);
+    methods(&c, spectra);
+    library_directivity(&c);
     if let Some(coh) = coh {
         interference(&c, coh);
         interference_summary(&c, coh);

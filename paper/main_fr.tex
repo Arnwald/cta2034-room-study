@@ -65,11 +65,12 @@ lobes. La moyenne sur les directions, dans les courbes de la norme comme dans la
 creux que le filtre dessine dans chaque réflexion~: les rebonds sur le sol et le plafond d'une deux
 voies en LR4 portent des creux de 10 à 40\,dB larges d'un tiers d'octave, que les moyennes réduisent à
 2\,dB, et ces moyennes désignent le LR2 comme le plus régulier des Linkwitz-Riley alors que ses
-réflexions sont les plus colorées. Lu trajet par trajet, un filtre brickwall retire environ 60\,\% de
-la coloration des rebonds sur le sol et le plafond (\ncolDomeRedVert\,\% avec le dôme nu,
-\ncolWgRedVert\,\% avec le guide d'onde), en laissant des creux aussi profonds mais dix à treize fois plus
-étroits~; la courbe dans la pièce ne devient plus régulière que si les directivités des haut-parleurs
-se raccordent. Sommés avec leurs phases aux oreilles de l'auditeur et lissés par les filtres auditifs,
+réflexions sont les plus colorées. Lu trajet par trajet, tel que l'enceinte les envoie, un filtre
+brickwall retire environ 60\,\% de la coloration des rebonds sur le sol et le plafond (\ncolDomeRedVert\,\%
+avec le dôme nu, \ncolWgRedVert\,\% avec le guide d'onde), en laissant des creux aussi profonds mais dix à
+treize fois plus étroits~; cela décrit l'enceinte plutôt que la pression à l'oreille, et la part qui s'entend
+relève des tests d'écoute. La courbe dans la pièce ne devient plus régulière que si les directivités
+des haut-parleurs se raccordent. Sommés avec leurs phases aux oreilles de l'auditeur et lissés par les filtres auditifs,
 les trajets changent peu le régime établi~; dans le son précoce en un point fixe, le peigne des rebonds
 sur le sol et le plafond l'emporte sur la coloration de tous les filtres, et le creux du Linkwitz-Riley,
 qui retire ces réflexions près du raccordement, y retire aussi leur peigne. Sur sept enceintes simulées
@@ -328,6 +329,19 @@ des manuels~; les temps de réverbération (\nrtMedian\,s en médiane à 1\,kHz,
 80\,\% des pièces) tombent dans la plage mesurée dans les logements meublés \cite{diaz2005}. Les 150
 premières pièces servent à ajuster les poids mis à jour, les 150 autres à les tester.
 
+L'ensemble doit représenter les pièces auxquelles s'adresse la norme. La PIR a été construite pour
+prédire la réponse à la place d'écoute de pièces domestiques typiques \cite{devantier2002}, et les
+premières réflexions tirent leurs directions d'une enquête sur de telles pièces. Les configurations
+suivent cette idée~: des dimensions de salon, une paire stéréo et un auditeur à 2,0--3,8\,m, du mobilier,
+des temps de réverbération dans la plage mesurée dans de vrais logements, un quart des pièces avec des
+panneaux aux points de première réflexion des murs latéraux. Rien n'a été réglé sur les angles de
+réflexion, qui offrent donc une vérification~: les rebonds sur le sol, le plafond et les murs latéraux
+quittent l'enceinte dans les angles que la norme a tirés de son enquête, et celui sur le mur derrière
+l'auditeur dans ses angles du \og mur avant\fg{} (section~\ref{sec:standard},
+tableau~\ref{tab:directions}). Seul le mur derrière les enceintes est atteint ailleurs, entre $137$ et
+$166^\circ$ au lieu des $\pm90^\circ$ et $180^\circ$ de la norme. Ce que l'ensemble laisse de côté figure
+avec les autres limites (section~\ref{sec:limits}).
+
 \begin{table}[t]
 \centering
 \caption{Les 300 configurations aléatoires~: 10\ieme{} centile, médiane, 90\ieme{} centile.}
@@ -555,20 +569,44 @@ direction, à une fréquence qui lui est propre~: deux haut-parleurs distants de
 $d \sin\theta$ vaut une demi-longueur d'onde, à $34^\circ$ pour 2,2\,kHz et 140\,mm, sous des angles plus
 ouverts aux fréquences plus basses. Sommer des directions en puissance, comme le font la courbe dans la
 pièce, la PIR et toutes les courbes de la norme, revient à additionner des creux qui tombent à des
-fréquences différentes, donc à les combler. D'où deux mesures.
+fréquences différentes, donc à les combler. D'où deux mesures, fondées toutes deux sur l'écart d'une
+réponse $X(f)$ à une droite, à moins d'une octave du raccordement~:
+\begin{equation}
+D[X] = \bigg(\frac{1}{N}\sum_{f \in B}\Big[10\log_{10} X(f) - a - b\log_2 f\Big]^2\bigg)^{1/2},
+\end{equation}
+où $a$ et $b$ sont ajustés aux moindres carrés de 600\,Hz à 8\,kHz (une enceinte dont l'indice de
+directivité croît régulièrement donne une droite) et $B$ désigne les $N$ fréquences de la grille au
+1/96\ieme{} d'octave entre 1,1 et 4,4\,kHz. Le creux le plus profond est le plus grand écart négatif dans
+$B$.
 
-\emph{Courbe moyennée.} L'écart d'une courbe (en dB, en fonction du logarithme de la fréquence) à la
-droite qui l'approche le mieux de 600\,Hz à 8\,kHz, une enceinte dont l'indice de directivité croît
-régulièrement donnant une droite~; sa valeur RMS à moins d'une octave du raccordement (1,1 à 4,4\,kHz),
-et le creux le plus profond dans cette bande.
+\emph{Courbe moyennée.} Les trajets sont d'abord sommés en puissance, comme dans la réponse de la pièce
+(section~\ref{sec:rooms}), et l'écart est pris sur la somme~:
+\begin{equation}
+E(f) = \sum_i W_i(f)\,P(\Omega_i, f), \qquad D_{\mathrm{moy}} = D\big[E / E_{\mathrm{omni}}\big],
+\end{equation}
+la somme portant sur les sources images et sur les directions du champ diffus. Une courbe de la norme
+est la même somme sur ses 70 directions, avec ses propres poids (section~\ref{sec:cta}).
 
-\emph{Coloration des trajets.} Le même écart pour la réponse dans chaque direction, avant toute moyenne,
-pondéré ensuite par l'énergie que ce trajet apporte à l'auditeur~: le poids du trajet dans la pièce
-multiplié par la puissance de l'enceinte dans sa direction, moyennée de 600\,Hz à 8\,kHz et sur les
-quatre filtres. Les poids sont ainsi les mêmes pour tous les filtres, et un creux ne réduit pas le
-poids du trajet qu'il colore. Groupes~: tous les trajets (régime établi), les premières réflexions, les
-seuls rebonds sur le sol et le plafond~; et les 70 directions avec les poids de la PIR ou les poids mis
-à jour.
+\emph{Coloration des trajets.} Chaque trajet garde la réponse de la direction dans laquelle il part, et
+seuls les écarts sont moyennés~:
+\begin{equation}
+C = \frac{\sum_i \bar w_i\,D\big[P(\Omega_i, \cdot)\big]}{\sum_i \bar w_i}, \qquad
+\bar w_i = \bar W_i\,\bar P_i,
+\end{equation}
+chaque trajet étant pondéré par l'énergie qu'il apporte à l'auditeur, le poids $\bar W_i$ du trajet dans
+la pièce multiplié par la puissance $\bar P_i$ de l'enceinte dans sa direction, tous deux moyennés de
+600\,Hz à 8\,kHz, et la puissance aussi sur les quatre filtres. Les poids sont ainsi les mêmes pour tous
+les filtres, et un creux ne réduit pas le poids du trajet qu'il colore. Groupes~: tous les trajets
+(régime établi), les premières réflexions, les seuls rebonds sur le sol et le plafond~; et les 70
+directions avec les poids de la PIR ou les poids mis à jour, le poids $w^C_d$ de la courbe tenant lieu
+de $\bar W_d$.
+
+Les deux mesures ne décrivent pas la même chose. $D_{\mathrm{moy}}$ est l'écart de l'énergie que reçoit
+l'auditeur, les trajets sommés en puissance, comme les somme une moyenne spatiale sur quelques dizaines
+de centimètres. $C$ n'est pas une grandeur du champ acoustique, et aucun micro placé à l'écoute ne la
+mesure~: elle décrit ce que l'enceinte envoie dans chaque trajet, pondéré par l'énergie que la pièce en
+ramène, et les creux des trajets séparés y restent parce qu'ils ne sont jamais additionnés. La
+section~\ref{sec:measures} revient sur ce que chacune permet d'affirmer.
 
 \subsection{Ce que portent les rebonds sur le sol et le plafond}
 
@@ -604,6 +642,24 @@ Le long de l'orbite verticale (figure~\ref{fig:verticalcol}), l'écart culmine p
 $-33^\circ$ et $+32^\circ$ avec le dôme nu~: 8,3 et 7,4\,dB RMS avec le LR2, 7,6 et 7,0 avec le LR4, 6,5 et
 6,1 avec le LR8, 2,5 et 2,7 avec le brickwall. Les rebonds sur le sol des 300 pièces se placent sur le
 pic inférieur, ceux sur le plafond sur l'épaule du pic supérieur.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{averaging}
+\caption{Les six directions vers le sol et le plafond de la courbe ER (traits fins) et la courbe
+elle-même (trait épais), relatives à la réponse dans l'axe~: deux voies à dôme nu, trois filtres.}
+\label{fig:averaging}
+\end{figure}
+
+Les courbes de la norme font de même. La courbe ER moyenne trois directions vers le sol et trois vers le
+plafond avec celles des murs (figure~\ref{fig:averaging}). Avec le LR2, les six directions présentent des
+creux de \nerDirLrTwoDepthMin\ à \nerDirLrTwoDepthMax\,dB sous l'axe, entre \nerDirLrTwoFreqMin\ et
+\nerDirLrTwoFreqMax\,kHz, et la courbe ne descend que de \nerCurveLrTwoDip\,dB sous sa droite. Avec le LR4,
+les creux tombent entre \nerDirLrFourFreqMin\ et \nerDirLrFourFreqMax\,kHz et la courbe descend de
+\nerCurveLrFourDip\,dB (\nerCurveLrEightDip\,dB avec le LR8). Avec le brickwall, chaque direction a son
+creux à \nerDirFirFreqMax\,kHz, de \nerDirFirDepthMin\ à \nerDirFirDepthMax\,dB sous l'axe, et la courbe garde
+un creux de \nerCurveFirDip\,dB. Plus la bande où les deux haut-parleurs jouent ensemble est large, plus
+les creux s'étalent en fréquence, et mieux la moyenne les comble.
 
 \subsection{Résultats}
 
@@ -689,6 +745,23 @@ elle la divise par 5 (\ncolDomeLrTwoVert\ contre \ncurveDomeLrTwoRoom\,dB), avec
 la pente est faible, plus la bande où les haut-parleurs interfèrent est large, plus nombreuses sont les
 directions qui voient le creux à des fréquences différentes, et plus la moyenne le comble.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{methods}
+\caption{Les deux mesures pour chaque filtre, deux voies à dôme nu. En haut~: écart à la droite de la
+réponse en régime établi du salon, les trajets sommés en puissance, et médiane de $D_{\mathrm{moy}}$ sur
+les 300 pièces. En bas~: le même écart pour les rebonds sur le sol et le plafond de ce salon, pris
+chacun seul, et médiane sur les 300 pièces de leur coloration $C$.}
+\label{fig:methods}
+\end{figure}
+
+La figure~\ref{fig:methods} met les deux mesures côte à côte dans le salon. Sa réponse moyennée garde un
+creux de \nlivingDomeLrTwoDip\,dB avec le LR2, \nlivingDomeLrFourDip\ avec le LR4, \nlivingDomeLrEightDip\ avec
+le LR8 et \nlivingDomeFirDip\,dB avec le brickwall. À la même échelle, ses rebonds sur le sol et le plafond
+gardent leurs creux~: au sol, \nnotchDomeLrTwoFloorDepth\,dB de profondeur et \nnotchDomeLrTwoFloorWidth\,Hz
+de large à $-6$\,dB avec le LR2, \nnotchDomeLrFourFloorDepth\,dB et \nnotchDomeLrFourFloorWidth\,Hz avec le
+LR4, \nnotchDomeFirFloorDepth\,dB et \nnotchDomeFirFloorWidth\,Hz avec le brickwall.
+
 \emph{Les poids de la norme} accordent à la coloration des trajets moins d'importance que les pièces
 (\ncolDomeLrFourPir\ contre \ncolDomeLrFourSteady\,dB avec le dôme nu et le LR4), parce que la PIR
 s'appuie sur la fenêtre d'écoute, où les lobes verticaux ne se voient pas~; ils montrent un gain un peu
@@ -699,7 +772,8 @@ contre \ncolWgRedSteady\,\% avec le guide d'onde). Les poids mis à jour se situ
 \subsection{Interférences aux oreilles}
 \label{sec:interference}
 
-Jusqu'ici, toutes les réponses somment les trajets en puissance, comme si chacun s'entendait seul. En un
+Jusqu'ici, toutes les réponses somment les trajets en puissance, comme si leurs phases étaient
+aléatoires. En un
 point fixe, le son direct et les réflexions s'ajoutent en pression~: une réflexion retardée de $\tau$
 creuse la réponse tous les $1/\tau$, en peigne. Pour voir ce que ce peigne change à la comparaison, le
 son direct et les images jusqu'au troisième ordre ont été sommés avec leurs phases en quatorze
@@ -778,10 +852,46 @@ oreilles ou les quatorze points réduit les écarts sans les combler (\ncohWgLrF
 Ce que mesure le peigne, c'est la pièce, pas le filtre~: une source sans filtre le montre partout, et un
 filtre qui creuse les réflexions près de sa fréquence l'y retire, avec une partie de leur énergie.
 Dire si cela s'entend mieux revient aux tests d'écoute. Le peigne d'une réflexion isolée colore moins
-le son pour deux oreilles que pour une seule (décoloration binaurale \cite{salomons1995}), et le spectre
-propre des réflexions, que mesure la coloration des trajets, est ce que l'oreille attribue à la pièce.
-Les interférences laissent donc intact le tableau du régime établi~; en un point fixe, elles échangent la
-coloration des réflexions par le filtre contre le peigne que ces réflexions provoquent.
+le son pour deux oreilles que pour une seule (décoloration binaurale \cite{salomons1995})~; l'oreille
+juge-t-elle ensuite le spectre propre des réflexions, que mesure la coloration des trajets~? Cette
+simulation ne permet pas de le dire. Les interférences laissent donc intact le tableau du régime
+établi~; en un point fixe, elles échangent la coloration des réflexions par le filtre contre le peigne
+que ces réflexions provoquent.
+
+\subsection{Ce que décrit chaque mesure}
+\label{sec:measures}
+
+Les trois lectures de cette section n'ont pas le même statut. La description la plus fidèle du son
+qui parvient à l'auditeur est la somme des trajets en pression, aux oreilles, lissée comme l'audition
+résout les fréquences~: c'est ce que calcule la section~\ref{sec:interference}, pour les images jusqu'au
+troisième ordre. Les deux autres s'y rattachent chacune à sa manière.
+
+\emph{Les trajets sommés en puissance} sont cette somme moyennée. Sur des positions distantes de
+quelques dizaines de centimètres, ou sur une bande de fréquences, les termes croisés entre trajets se
+compensent et il reste la somme en énergie. En régime établi, cela tient bien~: en un point, après
+lissage par les filtres auditifs, l'écart de la somme cohérente ne dépasse celui de la somme en énergie
+que de \ncohSteadyGainMin\ à \ncohSteadyGainMax\,dB à moins d'une octave du raccordement
+(tableau~\ref{tab:coherent}). $D_{\mathrm{moy}}$ décrit donc fidèlement l'énergie reçue, à la résolution où
+les termes croisés se compensent effectivement. Pour le son précoce en un point, ce n'est plus le cas~:
+les rebonds sur le sol et le plafond arrivent \ndelayFloor\ et \ndelayCeiling\,ms après le son direct
+(médiane), et leurs peignes résistent au lissage auditif.
+
+\emph{La coloration des trajets} n'est pas une grandeur du champ à l'oreille. Elle décrit la source~:
+le spectre que l'enceinte envoie dans chaque trajet, pondéré par l'énergie que la pièce en ramène. Elle
+est bien définie, mais sa portée pour ce que l'on entend repose sur une hypothèse~: l'auditeur jugerait
+le timbre de chaque réflexion, et pas seulement celui de leur somme. Les instants d'arrivée, à eux
+seuls, ne l'appuient pas~: un rebond sur le sol \ndelayFloor\,ms après le son direct se situe bien sous le
+seuil d'écho, et l'audition le fusionne avec le son direct en un seul événement \cite{litovsky1999}~;
+l'oreille reçoit la somme, peigne compris. L'audition ne suit pas non plus simplement la somme en
+énergie, comme le montrent la décoloration binaurale \cite{salomons1995} et la saillance différente des
+réflexions latérales et de celles du plan médian \cite{olive1989,bech1996}. La façon dont elle pèse la
+coloration que porte une réflexion relève des tests d'écoute.
+
+En résumé, en régime établi, la somme en énergie est physiquement juste, et c'est elle que montre la
+courbe dans la pièce~; pour le son précoce en un point fixe, la physique donne le peigne, que la somme en
+énergie ignore~; $C$ dit ce que chaque réflexion emporte de l'enceinte. Quand cette étude compare des
+filtres par $C$, elle compare ce qu'envoient les enceintes~; ce qu'entendent les auditeurs reste à
+tester.
 
 % =============================================================================================
 \clearpage
@@ -801,6 +911,22 @@ côté d'un médium à dôme de 3~pouces surmonté du tweeter~; une colonne troi
 quatre filtres~; à trois ou quatre voies, chaque voie située au-dessus d'un raccordement en reçoit le
 passe-haut et chaque voie située plus bas son passe-tout, de sorte que les voies se somment en un
 passe-tout dans l'axe.
+
+Leur directivité verticale avec des filtres LR4 montre à quel point elles diffèrent
+(figure~\ref{fig:library-directivity}). La coaxiale n'a aucun lobe, ses deux haut-parleurs partageant le
+même centre. Les boomers de la MTM, distants de 230\,mm, ouvrent de larges lobes qui leur sont propres
+sous le raccordement. Le moniteur présente des lobes verticaux à son raccordement de 3\,kHz, entre le
+médium et le tweeter superposés~; son boomer est placé à côté du médium, décalé de 205\,mm, moins
+d'une demi-longueur d'onde à 450\,Hz, de sorte que leur raccordement ne laisse aucun zéro dans le plan
+horizontal non plus. Les colonnes présentent des lobes à chacun de leurs raccordements.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{library_directivity}
+\caption{Directivité dans le plan vertical des sept enceintes avec des filtres LR4, relative à la
+réponse dans l'axe.}
+\label{fig:library-directivity}
+\end{figure}
 
 \begin{table}[t]
 \centering
@@ -901,7 +1027,10 @@ direction. Sur les 28 variantes, il suit la coloration des premières réflexion
 corrélation de \nlibCorrIndex, et celle des rebonds sur le sol et le plafond, lue sur les seules directions
 verticales, avec \nlibCorrIndexVert. La rugosité de la courbe ER n'y est corrélée qu'à \nlibCorrEr, celle de
 la PIR à \nlibCorrPir, celle de la réponse moyenne des pièces elles-mêmes à \nlibCorrRoom\
-(figure~\ref{fig:library-index}).
+(figure~\ref{fig:library-index}). Les deux termes de la corrélation sont de même nature~: l'indice lit sur
+les orbites ce que la coloration des pièces lit trajet par trajet, ce que l'enceinte envoie dans les
+réflexions (section~\ref{sec:measures}). La corrélation montre que les deux orbites contiennent cette
+information. Elle ne montre pas que l'indice prédit ce que l'on entend.
 
 Les moyennes continuent de flatter les faibles pentes~: avec la deux voies à dôme nu, la rugosité de la
 PIR vaut \nlibDomeLrTwoPir\,dB avec le LR2 et \nlibDomeFirPir\,dB avec le brickwall, alors que les premières
@@ -924,7 +1053,8 @@ l'estimation de la CTA-2034 et le dire.
 \item Prédire la réponse dans la pièce en régime établi par $0,1\,\mathrm{LW} + 0,9\,\mathrm{SP}$, le son précoce
 par $0,4\,\mathrm{LW} + 0,4\,\mathrm{ER} + 0,2\,\mathrm{SP}$.
 \item Donner la coloration des réflexions par l'indice des orbites, avec les réponses des directions de
-premières réflexions elles-mêmes plutôt que leur seule moyenne.
+premières réflexions elles-mêmes plutôt que leur seule moyenne, comme une description de l'enceinte
+dont des tests d'écoute devraient établir le lien avec la coloration perçue.
 \end{itemize}
 La bibliothèque est simulée, avec une seule géométrie par famille, la directivité en champ lointain de
 chaque haut-parleur sur son baffle et des pièces rectangulaires~; elle montre que les deux orbites
@@ -954,9 +1084,11 @@ les réduisent à un creux de 2\,dB. Plus la pente est faible, plus les moyennes
 courbe dans la pièce et la PIR désignent le LR2 comme le plus régulier des Linkwitz-Riley, alors que ses
 réflexions sont les plus colorées. Sous cette forme, l'objection tient.
 
-\emph{Le filtre brickwall.} Il réduit d'environ 60\,\% la coloration des rebonds sur le sol et le
-plafond, avec ou sans guide d'onde, et de 38 à 53\,\% celle de l'ensemble des premières réflexions. Ses
-creux sont aussi profonds que ceux des Linkwitz-Riley, et dix à treize fois plus étroits. Que la courbe
+\emph{Le filtre brickwall.} Il réduit d'environ 60\,\% la coloration que l'enceinte envoie dans les
+rebonds sur le sol et le plafond, avec ou sans guide d'onde, et de 38 à 53\,\% celle qu'elle envoie dans
+l'ensemble des premières réflexions. Ses creux sont aussi profonds que ceux des Linkwitz-Riley, et dix à
+treize fois plus étroits. C'est une propriété de l'enceinte~: à l'oreille, les trajets arrivent en une
+seule somme (section~\ref{sec:measures}), et la part de l'écart qui s'entend relève des tests d'écoute. Que la courbe
 dans la pièce devienne plus régulière dépend des haut-parleurs~: quand le boomer devient directif au
 raccordement et que le tweeter ne l'est pas, le brickwall transforme le creux des lobes en une marche de
 directivité. Raccorder les directivités (un guide d'onde) et resserrer la bande où les deux
@@ -984,18 +1116,23 @@ rebonds sur le sol et le plafond, de $-30$ à $-40^\circ$ et de $+40$ à $+50^\c
 habituelles.
 
 \subsection{Limites}
+\label{sec:limits}
 
 Les pièces sont des boîtes rectangulaires, d'absorption uniforme par paroi en dehors des zones
 traitées, avec des coefficients de manuel et un modèle hybride spéculaire et diffus~; les vraies pièces
-ont des meubles sur les trajets, des ouvertures, des formes irrégulières. Leur réverbération et leurs
+ont des meubles sur les trajets, des ouvertures, des formes irrégulières. L'ensemble représente des
+salons ordinaires~: les pièces plus grandes, les salles dédiées traitées sur toutes leurs parois et les
+enceintes placées contre le grand mur en sortent. Leur réverbération et leurs
 parts d'énergie découlent de la constante de salle et ne sont pas propres à ce modèle, mais la part de
 chaque première réflexion dépend des matériaux au point de réflexion. Les trajets sont sommés en
 énergie, sauf à la section~\ref{sec:interference}, où les images se rencontrent avec leurs phases en des
 points sans tête~; les modes de la pièce sous 200\,Hz environ sortent du cadre de l'étude. Le son précoce est lui aussi une somme d'énergie~; l'audition pèse les réflexions
 autrement que par leur énergie (décoloration binaurale des réflexions latérales, poids du rebond sur le
 sol dans le plan médian \cite{bech1996,olive1989}), ce qu'aucune pondération de réponses en puissance ne
-saisit. Les mesures de coloration sont physiques~: un creux étroit s'entend moins qu'un creux large de
-même profondeur \cite{bucklein1981}, et l'écart RMS n'en tient compte qu'à travers sa largeur.
+saisit. Les mesures de coloration sont physiques~: la coloration des trajets et l'indice des orbites
+décrivent l'enceinte plutôt que la pression à l'oreille (section~\ref{sec:measures}), et un creux étroit
+s'entend moins qu'un creux large de même profondeur \cite{bucklein1981}, ce dont l'écart RMS ne tient
+compte qu'à travers sa largeur.
 L'enceinte principale est une seule deux voies bibliothèque, en deux versions~; la bibliothèque de la
 section~\ref{sec:proposal} y ajoute cinq familles, une géométrie chacune, et aucune cardioïde. Enfin, l'étude
 part de la CTA-2034-A~; sa révision B n'a pas été vérifiée.
@@ -1012,8 +1149,9 @@ pièces sont prédites à leur propre dispersion près par environ $0,1\,\mathrm
 puissance de toute la sphère, que deux orbites sous-estiment là où les haut-parleurs interfèrent. Toute
 moyenne, celle de la pièce comprise, comble les creux que le filtre dessine dans chaque réflexion, et
 flatte d'abord les filtres à faible pente. Lu trajet par trajet, un filtre brickwall retire environ
-60\,\% de la coloration des rebonds sur le sol et le plafond~; il ne donne une réponse plus régulière dans
-la pièce que si les directivités des haut-parleurs se raccordent. Sommés avec leurs phases aux
+60\,\% de la coloration que l'enceinte envoie dans les rebonds sur le sol et le plafond~; la part qui
+s'entend, les trajets parvenant à l'oreille en une seule somme, relève des tests d'écoute. Il ne donne
+une réponse plus régulière dans la pièce que si les directivités des haut-parleurs se raccordent. Sommés avec leurs phases aux
 oreilles, les trajets laissent le régime établi tel quel~; en un point fixe, le son précoce porte le
 peigne des rebonds sur le sol et le plafond, qu'un creux de Linkwitz-Riley retire près du raccordement
 avec les réflexions, et qu'une écoute à deux oreilles atténue. Sept
@@ -1080,6 +1218,9 @@ notched-noise data\fg{}, \emph{Hearing Research}, vol.~47, p.~103--138, 1990.
 
 \bibitem{salomons1995} A. M. Salomons, \emph{Coloration and Binaural Decoloration of Sound due to
 Reflections}, thèse de doctorat, Delft University of Technology, 1995.
+
+\bibitem{litovsky1999} R. Y. Litovsky, H. S. Colburn, W. A. Yost, S. J. Guzman, \og The precedence
+effect\fg{}, \emph{J. Acoust. Soc. Am.}, vol.~106, n\textsuperscript{o}~4, p.~1633--1654, 1999.
 
 \end{thebibliography}
 

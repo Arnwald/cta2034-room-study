@@ -61,10 +61,11 @@ of the power lost to lobing. Averaging over directions, in the standard's curves
 the notches the crossover digs into each reflection: the floor and ceiling bounces of an LR4 two-way
 carry notches of 10 to 40\,dB a third of an octave wide, which the averages reduce to a 2\,dB dip, and
 the averages rank LR2 as the smoothest Linkwitz-Riley crossover while its reflections are the most
-coloured. Read path by path, a brickwall crossover removes about 60\,\% of the colouration of the floor
-and ceiling bounces (\ncolDomeRedVert\,\% with the plain dome, \ncolWgRedVert\,\% with the waveguide),
-leaving notches as deep but ten to thirteen times narrower; the in-room curve becomes smoother only when the
-drivers' directivities match at the crossover. Added with their phases at the listener's ears and
+coloured. Read path by path, as the loudspeaker sends them, a brickwall crossover removes about 60\,\% of
+the colouration of the floor and ceiling bounces (\ncolDomeRedVert\,\% with the plain dome, \ncolWgRedVert\,\%
+with the waveguide), leaving notches as deep but ten to thirteen times narrower; this describes the
+loudspeaker rather than the pressure at the ear, and how much of it is heard is for listening tests. The in-room
+curve becomes smoother only when the drivers' directivities match at the crossover. Added with their phases at the listener's ears and
 smoothed by the auditory filters, the paths change the steady state little; in the early sound at a
 fixed point the comb of the floor and ceiling bounces outweighs any crossover's colouration, and the
 Linkwitz-Riley notch, which takes these reflections out near the crossover, removes their comb there. On seven simulated loudspeakers (two-ways, a coaxial, an MTM, a horizontal
@@ -309,6 +310,18 @@ absorption and scattering coefficients are typical textbook values; the reverber
 furnished dwellings \cite{diaz2005}. The first 150 rooms fit the updated weights, the other 150 test
 them.
 
+The ensemble is meant to stand for the rooms the standard addresses. The PIR was built to predict the
+response at the listening position of typical domestic rooms \cite{devantier2002}, and the Early
+Reflections take their directions from a survey of such rooms. The setups follow that: the dimensions
+of living rooms, a stereo pair and a listener 2.0 to 3.8\,m away, furniture, reverberation times in the
+range measured in real dwellings, a quarter of the rooms with panels at the side walls' first
+reflection points. Nothing was tuned to the reflection angles, which therefore offer a check: the floor,
+ceiling and side-wall reflections leave the loudspeaker within the angles the standard took from its survey, and the
+wall behind the listener within its front-wall angles (section~\ref{sec:standard},
+table~\ref{tab:directions}). Only the wall behind the loudspeakers is reached elsewhere, at $137$ to
+$166^\circ$ instead of the standard's $\pm90^\circ$ and $180^\circ$. What the ensemble leaves out is
+listed with the other limits (section~\ref{sec:limits}).
+
 \begin{table}[t]
 \centering
 \caption{The 300 random setups: 10th percentile, median, 90th percentile.}
@@ -529,18 +542,42 @@ A crossover's defects lie within about an octave of its frequency, and in each d
 frequency of its own: two drivers $d$ apart cancel where $d \sin\theta$ is half a wavelength, at
 $34^\circ$ for 2.2\,kHz and 140\,mm, at wider angles for lower frequencies. Adding directions in
 power, as the in-room curve, the PIR and every curve of the standard do, adds notches that fall at
-different frequencies, and fills them. Two measures follow.
+different frequencies, and fills them. Two measures follow, both built on the deviation of a response
+$X(f)$ from a straight line within one octave of the crossover,
+\begin{equation}
+D[X] = \bigg(\frac{1}{N}\sum_{f \in B}\Big[10\log_{10} X(f) - a - b\log_2 f\Big]^2\bigg)^{1/2},
+\end{equation}
+$a$ and $b$ fitted by least squares from 600\,Hz to 8\,kHz (a loudspeaker whose directivity index rises
+evenly gives a straight line), $B$ the $N$ frequencies of the 1/96-octave grid from 1.1 to 4.4\,kHz. The
+deepest dip is the largest negative deviation within $B$.
 
-\emph{Averaged curve.} The deviation of a curve (dB against log frequency) from the straight line that
-best fits it from 600\,Hz to 8\,kHz, a loudspeaker whose directivity index rises evenly giving a
-straight line; its RMS within one octave of the crossover (1.1 to 4.4\,kHz), and the deepest dip there.
+\emph{Averaged curve.} The paths are first added in power, as in the room's response
+(section~\ref{sec:rooms}), and the deviation is taken on the sum:
+\begin{equation}
+E(f) = \sum_i W_i(f)\,P(\Omega_i, f), \qquad D_{\mathrm{avg}} = D\big[E / E_{\mathrm{omni}}\big],
+\end{equation}
+the sum running over the images and the diffuse field's directions. A curve of the standard is the
+same sum over its 70 directions with its own weights (section~\ref{sec:cta}).
 
-\emph{Colouration of the paths.} The same deviation for the response in each direction, before any
-averaging, then weighted by the energy that path brings to the listener: the room's weight times the
-loudspeaker's power in that direction, averaged over 600\,Hz--8\,kHz and over the four crossovers. The
-weights are thus the same for all crossovers, so that a notch does not lower the weight of the path it
-colours. Groups: every path (steady state), the first reflections, the floor and ceiling bounces alone;
-and the 70 directions with the PIR's weights or the updated ones.
+\emph{Colouration of the paths.} Each path keeps the response of the direction it leaves in, and only
+the deviations are averaged:
+\begin{equation}
+C = \frac{\sum_i \bar w_i\,D\big[P(\Omega_i, \cdot)\big]}{\sum_i \bar w_i}, \qquad
+\bar w_i = \bar W_i\,\bar P_i,
+\end{equation}
+each path weighted by the energy it brings to the listener, the room's weight $\bar W_i$ times the
+loudspeaker's power $\bar P_i$ in that direction, both averaged over 600\,Hz--8\,kHz and the power also
+over the four crossovers. The weights are thus the same for all crossovers, so that a notch does not
+lower the weight of the path it colours. Groups: every path (steady state), the first reflections, the
+floor and ceiling bounces alone; and the 70 directions with the PIR's weights or the updated ones, the
+curve's weight $w^C_d$ standing for $\bar W_d$.
+
+The two measures describe different things. $D_{\mathrm{avg}}$ is the deviation of the energy the
+listener receives, the paths added in power, as a spatial average over a few tenths of a metre adds
+them. $C$ is not a quantity of the sound field, and no microphone at the listening position measures
+it: it describes what the loudspeaker sends into each path, weighted by the energy the room brings
+back, and the notches of the separate paths stay in it because they are never added.
+Section~\ref{sec:measures} returns to what each can claim.
 
 \subsection{What the floor and ceiling bounces carry}
 
@@ -575,6 +612,24 @@ Along the vertical orbit (figure~\ref{fig:verticalcol}) the deviation peaks near
 $-33^\circ$ and $+32^\circ$ with the plain dome: 8.3 and 7.4\,dB RMS with LR2, 7.6 and 7.0 with LR4, 6.5
 and 6.1 with LR8, 2.5 and 2.7 with the brickwall. The floor bounces of the 300 rooms sit on the lower
 peak; the ceiling bounces on the upper one's shoulder.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{averaging}
+\caption{The six floor and ceiling directions of the Early Reflections curve (thin lines) and the curve
+itself (thick), relative to the on-axis response: plain-dome two-way, three crossovers.}
+\label{fig:averaging}
+\end{figure}
+
+The standard's own curves do the same. The Early Reflections curve averages three directions toward the
+floor and three toward the ceiling with the walls' directions (figure~\ref{fig:averaging}). With LR2 the
+six directions have notches \nerDirLrTwoDepthMin\ to \nerDirLrTwoDepthMax\,dB below the axis, between
+\nerDirLrTwoFreqMin\ and \nerDirLrTwoFreqMax\,kHz, and the curve dips \nerCurveLrTwoDip\,dB below its
+straight line. With LR4 the notches fall between \nerDirLrFourFreqMin\ and \nerDirLrFourFreqMax\,kHz and the
+curve dips \nerCurveLrFourDip\,dB (\nerCurveLrEightDip\,dB with LR8). With the brickwall every direction has
+its notch at \nerDirFirFreqMax\,kHz, \nerDirFirDepthMin\ to \nerDirFirDepthMax\,dB below the axis, and the
+curve keeps a dip of \nerCurveFirDip\,dB. The wider the band where both drivers play, the more the notches
+spread in frequency, and the better the average fills them.
 
 \subsection{Results}
 
@@ -658,6 +713,23 @@ narrower, about a thirtieth of an octave against a third.
 wider the band where the drivers interfere, the more directions see the notch at different frequencies,
 and the more the average fills it.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{methods}
+\caption{The two measures for each crossover, plain-dome two-way. Top: deviation from the straight line
+of the living room's steady-state response, the paths added in power, and the median of
+$D_{\mathrm{avg}}$ over the 300 rooms. Bottom: the same deviation for the floor and ceiling bounces of
+that room, each on its own, and the median over the 300 rooms of their colouration $C$.}
+\label{fig:methods}
+\end{figure}
+
+Figure~\ref{fig:methods} sets the two measures side by side in the living room. Its averaged response
+keeps a dip of \nlivingDomeLrTwoDip\,dB with LR2, \nlivingDomeLrFourDip\ with LR4, \nlivingDomeLrEightDip\ with
+LR8 and \nlivingDomeFirDip\,dB with the brickwall. On the same scale its floor and ceiling bounces keep
+their notches: at the floor, \nnotchDomeLrTwoFloorDepth\,dB deep and \nnotchDomeLrTwoFloorWidth\,Hz wide at
+$-6$\,dB with LR2, \nnotchDomeLrFourFloorDepth\,dB and \nnotchDomeLrFourFloorWidth\,Hz with LR4,
+\nnotchDomeFirFloorDepth\,dB and \nnotchDomeFirFloorWidth\,Hz with the brickwall.
+
 \emph{The standard's weights} give the paths' colouration less weight than the rooms do
 (\ncolDomeLrFourPir\ against \ncolDomeLrFourSteady\,dB with the plain dome and LR4), because the PIR leans
 on the Listening Window, where vertical lobing does not show; they show a slightly smaller gain from
@@ -668,7 +740,7 @@ the brickwall (\ncolDomeRedPir\ against \ncolDomeRedSteady\,\% with the plain do
 \subsection{Interference at the ears}
 \label{sec:interference}
 
-Every response so far adds the paths in power, as if each were heard on its own. At a fixed point the
+Every response so far adds the paths in power, as if their phases were random. At a fixed point the
 direct sound and the reflections add as pressures: a reflection delayed by $\tau$ digs a notch every
 $1/\tau$ into the response, a comb. To see what the comb does to the comparison, the direct sound and
 the images up to the third order were added with their phases at fourteen points: the two ears,
@@ -745,10 +817,43 @@ What the comb measures is the room, not the crossover: a source without a crosso
 everywhere, and a crossover that notches the reflections near its frequency removes it there, with
 part of the reflections' energy. Whether that sounds better is for listening tests to tell. A single
 reflection's comb colours the sound less for two ears than for one (binaural decoloration
-\cite{salomons1995}), and the reflections' own spectrum, which the colouration of the paths measures,
-is what the ear ascribes to the room. Interference thus leaves the steady-state picture as it is; at a
-fixed point it trades the crossover's colouration of the reflections for the comb those reflections
-cause.
+\cite{salomons1995}); whether the ear then judges the reflections' own spectrum, which the colouration
+of the paths measures, is beyond what this simulation can say. Interference thus leaves the
+steady-state picture as it is; at a fixed point it trades the crossover's colouration of the
+reflections for the comb those reflections cause.
+
+\subsection{What each measure describes}
+\label{sec:measures}
+
+The three readings of this section do not have the same standing. The most faithful description of
+the sound at the listener is the sum of the paths as pressures, at the ears, smoothed as hearing
+resolves frequency: what section~\ref{sec:interference} computes, for the images up to the third order.
+The other two relate to it in different ways.
+
+\emph{The paths added in power} are that sum averaged. Over positions a few tenths of a metre apart, or
+over a band of frequencies, the cross terms between paths average out and the energy sum remains. In
+steady state this holds well: at one point, smoothed by the auditory filters, the coherent sum deviates
+by only \ncohSteadyGainMin\ to \ncohSteadyGainMax\,dB more than the energy sum within an octave of the
+crossover (table~\ref{tab:coherent}). $D_{\mathrm{avg}}$ thus describes the energy received faithfully, at
+the resolution where the cross terms do average out. For the early sound at one point it does not: the
+floor and ceiling bounces arrive \ndelayFloor\ and \ndelayCeiling\,ms after the direct sound (median), and
+their combs survive the auditory smoothing.
+
+\emph{The colouration of the paths} is not a quantity of the field at the ear. It describes the
+source: the spectrum the loudspeaker sends into each path, weighted by the energy the room brings back
+from it. It is well defined, but its bearing on what is heard rests on an assumption, that the listener
+weighs the timbre of each reflection and not only that of their sum. The timing alone does not support
+it: a floor bounce \ndelayFloor\,ms after the direct sound is far below the echo threshold, and hearing
+fuses it with the direct sound into one event \cite{litovsky1999}; the ear receives the sum, comb
+included. Hearing does not simply follow the energy sum either, as binaural decoloration
+\cite{salomons1995} and the different salience of lateral and median-plane reflections
+\cite{olive1989,bech1996} show. How it weighs the colouration a reflection carries is a question for
+listening tests.
+
+In short, in steady state the energy sum is physically sound, and it is what the in-room curve shows;
+for the early sound at a fixed point, physics gives the comb, which the energy sum ignores; $C$ tells
+what each reflection carries from the loudspeaker. When this study compares crossovers by $C$, it
+compares what the loudspeakers send; what listeners hear remains to be tested.
 
 % =============================================================================================
 \clearpage
@@ -766,6 +871,21 @@ two 6.5-inch woofers, a 4-inch midrange and the tweeter; a four-way tower, 8-inc
 cones and the tweeter. The towers stand on the floor, the others on stands. Each gets the four
 crossovers; with three or four ways every way above a crossover gets its high-pass and every way
 further below its all-pass, so that the ways sum to an all-pass on the axis.
+
+Their vertical directivity with LR4 crossovers shows how different they are
+(figure~\ref{fig:library-directivity}). The coaxial has no lobe, its two drivers sharing one centre. The
+MTM's woofers, 230\,mm apart, open wide lobes of their own below the crossover. The monitor lobes
+vertically at its 3\,kHz crossover, between the stacked midrange and tweeter; its woofer sits beside the
+midrange, 205\,mm to the side, less than half a wavelength at 450\,Hz, so that their crossover leaves no null in
+the horizontal plane either. The towers lobe at each of their crossovers.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{library_directivity}
+\caption{Vertical-plane directivity of the seven loudspeakers with LR4 crossovers, relative to the
+on-axis response.}
+\label{fig:library-directivity}
+\end{figure}
 
 \begin{table}[t]
 \centering
@@ -861,7 +981,11 @@ energy its bounce brings for an omnidirectional source in the rooms (floor \nlib
 Across the 28 variants it follows the rooms' colouration of the first reflections with a correlation
 of \nlibCorrIndex, and that of the floor and ceiling bounces, read on the vertical directions alone, with
 \nlibCorrIndexVert. The roughness of the ER curve correlates with it at \nlibCorrEr, that of the PIR at
-\nlibCorrPir, that of the rooms' own mean response at \nlibCorrRoom\ (figure~\ref{fig:library-index}).
+\nlibCorrPir, that of the rooms' own mean response at \nlibCorrRoom\ (figure~\ref{fig:library-index}). Both
+sides of the correlation are the same kind of quantity: the index reads on the orbits what the rooms'
+colouration reads path by path, what the loudspeaker sends into the reflections
+(section~\ref{sec:measures}). The correlation shows that the two orbits hold that information. It does
+not show that the index predicts what is heard.
 
 The averages keep flattering the low slopes: with the plain-dome two-way, the PIR's roughness is
 \nlibDomeLrTwoPir\,dB with LR2 and \nlibDomeFirPir\,dB with the brickwall, while the first reflections carry
@@ -883,7 +1007,8 @@ say so.
 \item Predict the steady-state in-room response by $0.1\,\mathrm{LW} + 0.9\,\mathrm{SP}$, the early sound by
 $0.4\,\mathrm{LW} + 0.4\,\mathrm{ER} + 0.2\,\mathrm{SP}$.
 \item Give the colouration of the reflections as the orbit index, with the responses of the
-early-reflection directions themselves rather than only their average.
+early-reflection directions themselves rather than only their average, as a description of the
+loudspeaker whose bearing on perceived colouration listening tests would have to establish.
 \end{itemize}
 The library is simulated, with one geometry per family, the far-field directivity of each driver on
 its baffle and shoebox rooms; it shows that the two orbits hold the information, not that these
@@ -911,9 +1036,11 @@ into a dip of 2\,dB. The lower the slope, the more the averages flatter the cros
 and the PIR rank LR2 as the smoothest of the Linkwitz-Riley crossovers, while its reflections are the
 most coloured. In that form, the objection holds.
 
-\emph{The brickwall crossover.} It reduces the colouration of the floor and ceiling bounces by about
-60\,\%, with or without the waveguide, and of all the first reflections by 38 to 53\,\%. Its notches are as
-deep as the Linkwitz-Riley ones, ten to thirteen times narrower. Whether the in-room curve becomes smoother depends
+\emph{The brickwall crossover.} It reduces the colouration the loudspeaker sends into the floor and
+ceiling bounces by about 60\,\%, with or without the waveguide, and into all the first reflections by 38
+to 53\,\%. Its notches are as deep as the Linkwitz-Riley ones, ten to thirteen times narrower. That is a
+property of the loudspeaker: at the ear the paths arrive as one sum (section~\ref{sec:measures}), and
+how much of the difference is heard is for listening tests. Whether the in-room curve becomes smoother depends
 on the drivers: where the woofer beams at the crossover and the tweeter does not, the brickwall turns
 the lobing dip into a step of directivity. Matching the directivities at the crossover (a waveguide)
 and narrowing the band where both drivers play (a steep crossover) address two different causes of the
@@ -939,19 +1066,22 @@ like the colouration of the paths used here, in the directions where the floor a
 leave, $-30$ to $-40^\circ$ and $+40$ to $+50^\circ$ at usual listening distances.
 
 \subsection{Limits}
+\label{sec:limits}
 
 The rooms are shoeboxes, with uniform absorption per surface except for the patches, textbook
 coefficients and a hybrid specular-diffuse model; real rooms have furniture in the paths, openings,
-irregular shapes. Their reverberation and their energy shares follow from the room constant and are
+irregular shapes. The ensemble stands for ordinary living rooms: larger rooms, dedicated rooms treated
+on every surface and loudspeakers on the long wall are outside it. Their reverberation and their energy shares follow from the room constant and are
 not specific to this model, but the share of each first reflection depends on the materials at the
 reflection point. Paths are added in energy, except in section~\ref{sec:interference}, where the
 images meet with their phases at points without a head; the room's modes below about 200\,Hz are
 outside the study. The early sound is an energy sum too; hearing weighs
 reflections differently from their energy (binaural decoloration of lateral reflections, the
 salience of the floor bounce in the median plane \cite{bech1996,olive1989}), which no weighting of
-power responses captures. The colouration metrics are physical measures: a narrow notch is harder to
-hear than a broad one of the same depth \cite{bucklein1981}, and the RMS deviation accounts for that only
-through its width. The main loudspeaker is one two-way bookshelf in two versions; the library of
+power responses captures. The colouration metrics are physical measures: the colouration of the paths
+and the orbit index describe the loudspeaker rather than the pressure at the ear (section~\ref{sec:measures}),
+and a narrow notch is harder to hear than a broad one of the same depth \cite{bucklein1981}, which the RMS
+deviation accounts for only through its width. The main loudspeaker is one two-way bookshelf in two versions; the library of
 section~\ref{sec:proposal} adds five families, one geometry each, and no cardioid.
 Finally the study uses CTA-2034-A; its revision B was not checked.
 
@@ -966,8 +1096,9 @@ listeners sit. Its weights do not match the energy received: the first reflectio
 spread by about $0.1\,\mathrm{LW} + 0.9\,\mathrm{SP}$ with the sound power of the whole sphere, which
 two orbits underestimate where drivers interfere. Any average, the room's included, fills the notches
 the crossover digs into each reflection, and flatters the low-slope crossovers most. Read path by path,
-a brickwall crossover removes about 60\,\% of the colouration of the floor and ceiling bounces; it gives a
-smoother in-room response only when the drivers' directivities match at the crossover. Added with their
+a brickwall crossover removes about 60\,\% of the colouration the loudspeaker sends into the floor and
+ceiling bounces; how much of it is heard, the paths reaching the ear as one sum, is for listening tests.
+It gives a smoother in-room response only when the drivers' directivities match at the crossover. Added with their
 phases at the ears, the paths leave the steady state as it is; at a fixed point the early sound
 carries the comb of the floor and ceiling bounces, which a Linkwitz-Riley notch removes near the
 crossover along with the reflections, and which hearing with two ears attenuates. Seven
@@ -1032,6 +1163,9 @@ notched-noise data,'' \emph{Hearing Research}, vol.~47, pp.~103--138, 1990.
 
 \bibitem{salomons1995} A. M. Salomons, \emph{Coloration and Binaural Decoloration of Sound due to
 Reflections}, PhD thesis, Delft University of Technology, 1995.
+
+\bibitem{litovsky1999} R. Y. Litovsky, H. S. Colburn, W. A. Yost, S. J. Guzman, ``The precedence effect,''
+\emph{J. Acoust. Soc. Am.}, vol.~106, no.~4, pp.~1633--1654, 1999.
 
 \end{thebibliography}
 

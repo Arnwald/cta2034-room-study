@@ -38,6 +38,6 @@ fn main() {
             inroom::library_figures::all(lib, lang, &fig);
         }
         let numbers = tables::all(&study, lang, &tab, &spectra, coh.as_ref(), lib.as_ref());
-        eprintln!("{:?}: {} figures, {} numbers ({:.1} s)", lang, 14 + if coh.is_some() { 2 } else { 0 } + if lib.is_some() { 3 } else { 0 }, numbers.len(), t0.elapsed().as_secs_f64());
+        eprintln!("{:?}: {} figures, {} numbers ({:.1} s)", lang, 17 + if coh.is_some() { 2 } else { 0 } + if lib.is_some() { 3 } else { 0 }, numbers.len(), t0.elapsed().as_secs_f64());
     }
 }

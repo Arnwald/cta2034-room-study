@@ -8,15 +8,14 @@ use plotters::prelude::*;
 use plotters::style::text_anchor::{HPos, VPos};
 
 use crate::analysis::{Study, Which};
-use crate::crossover::{self, Kind, KINDS};
-use crate::figures::{kind_color, kind_label};
+use crate::crossover::{Kind, KINDS};
+use crate::figures::{directivity_maps, kind_color, kind_label, map_axes, vertical_map as map};
 use crate::library_figures::{bar_axes, bar_panel, family_label};
 use crate::plot::{band, label, layout, legend, legend_in, line, outline, pt, render, save_web, steps_of, sw, tint, Axes, Dash, Ground, Lang, Place, Swatch, INK, LW, MUTED, SLOTS};
 use crate::signal::{db10, log_grid, smooth_power};
 use crate::special::percentile;
-use crate::speaker::{two_way, FarField};
+use crate::speaker::two_way;
 use crate::standard::{self, Summary};
-use crate::study::power;
 
 /// Width of a figure on the blog (inches).
 const W: f64 = 6.0;
@@ -71,50 +70,7 @@ pub fn energy_shares(study: &Study, dir: &Path) {
 /// The floor and ceiling directions of CTA-2034's Early Reflections, each with its notch, and the
 /// Early Reflections curve that averages them with the walls' directions (two-way, plain dome).
 pub fn averaging(dir: &Path) {
-    let f = log_grid(300.0, 20000.0, 96);
-    let layout_ = two_way();
-    let far = FarField::new(&layout_, &f);
-    let on = far.on_axis();
-    let dirs = crate::cta2034::directions();
-    let resp = far.responses(&dirs);
-    let vertical: Vec<usize> = [-20, -30, -40, 40, 50, 60].iter().map(|a| crate::cta2034::index_of('v', *a)).collect();
-    let axis = crate::cta2034::index_of('h', 0);
-    let er = crate::cta2034::kernel("er");
-    let kinds = [Kind::Lr2, Kind::Lr4, Kind::Fir];
-    let mut axes: Vec<Axes> = kinds
-        .iter()
-        .enumerate()
-        .map(|(i, k)| {
-            let mut a = Axes::freq(EN, &kind_label(EN, *k), (700.0, 7000.0), (-30.0, 4.0), if i == 0 { "level re on axis (dB)" } else { "" });
-            a.x_ticks = vec![1000.0, 2000.0, 5000.0];
-            a.show_ylabels = i == 0;
-            a
-        })
-        .collect();
-    let svg = render(W, 2.7, |root| {
-        let p = layout(root, 1, 3, &mut axes);
-        for (i, k) in kinds.iter().enumerate() {
-            let ax = &axes[i];
-            let mut ch = ax.build(&p[i]);
-            let x = crossover::filters(*k, &f, &layout_, &on);
-            let pw = power(&x, &resp);
-            let rel = |d: usize| -> Vec<f64> { (0..f.len()).map(|j| pw.row(d)[j] as f64 / pw.row(axis)[j] as f64).collect() };
-            let col = kind_color(*k);
-            for &d in &vertical {
-                line(&mut ch, ax, &f, &db(&rel(d)), col.mix(0.6), 0.7, Dash::Solid, None);
-            }
-            let curve: Vec<f64> = (0..f.len()).map(|j| er.iter().enumerate().map(|(d, w)| w * pw.row(d)[j] as f64).sum::<f64>() / pw.row(axis)[j] as f64).collect();
-            line(&mut ch, ax, &f, &db(&curve), INK, 1.6, Dash::Solid, None);
-            if i == 0 {
-                let entries = vec![
-                    (Swatch::Line(tint(col, 0.6), 0.7, Dash::Solid), "its six floor and ceiling directions".to_string()),
-                    (Swatch::Line(INK, 1.6, Dash::Solid), "the Early Reflections curve".to_string()),
-                ];
-                legend_in(root, &ch, Place::LowerLeft, &entries, 1, 6.5, Ground::Plain);
-            }
-        }
-    });
-    save_web(&svg, dir, "averaging");
+    save_web(&crate::figures::averaging_svg(EN, W, 2.7), dir, "averaging");
 }
 
 /// The two-orbit sound power of the two-way against the sphere's.
@@ -221,71 +177,19 @@ pub fn index_library(s: &Summary, dir: &Path) {
     save_web(&svg, dir, "index-library");
 }
 
-/// The level above and below the axis relative to the axis (dB), ``[angle][freq]``, angles from
-/// -90 to +90 degrees in the vertical plane.
-fn vertical_map(layout: &crate::speaker::Layout, kind: Kind, f: &[f64], angles: &[f64]) -> Vec<Vec<f64>> {
-    let dirs: Vec<crate::Vec3> = angles.iter().map(|a| [0.0, a.to_radians().sin(), a.to_radians().cos()]).collect();
-    let far = FarField::new(layout, f);
-    let on = far.on_axis();
-    let p = power(&crossover::filters(kind, f, layout, &on), &far.responses(&dirs));
-    let axis = angles.iter().position(|a| *a == 0.0).unwrap();
-    (0..dirs.len()).map(|d| (0..f.len()).map(|j| db10(p.row(d)[j] as f64) - db10(p.row(axis)[j] as f64)).collect()).collect()
-}
-
-/// Draws maps of the vertical directivity, one per axes, and a colour bar in the area ``bar``.
-fn maps<DB: DrawingBackend>(
-    root: &DrawingArea<DB, plotters::coord::Shift>,
-    panels: &[DrawingArea<DB, plotters::coord::Shift>],
-    axes: &[Axes],
-    data: &[Vec<Vec<f64>>],
-    f: &[f64],
-    bar_x: i32,
-    span: Option<(i32, i32)>,
-) where
-    DB::ErrorType: 'static,
-{
-    let lf: Vec<f64> = f.iter().map(|x| x.log10()).collect();
-    let (mut top, mut bottom) = (i32::MAX, 0);
-    for ((ax, area), m) in axes.iter().zip(panels).zip(data) {
-        let mut ch = ax.build(area);
-        let pixels: Vec<RGBColor> = (0..m.len()).rev().flat_map(|a| m[a].iter().map(|v| crate::plot::level_colour(*v)).collect::<Vec<_>>()).collect();
-        let marker = crate::plot::raster(f.len(), m.len(), &pixels);
-        ch.draw_series(once(Rectangle::new([(lf[0], -90.0), (lf[f.len() - 1], 90.0)], marker.filled()))).unwrap();
-        outline(&ch);
-        let (_, ys) = ch.plotting_area().get_pixel_range();
-        top = top.min(ys.start);
-        bottom = bottom.max(ys.end);
-    }
-    let (top, bottom) = span.unwrap_or((top, bottom));
-    let h = ((bottom - top) as f64 * 0.8) as i32;
-    crate::plot::colour_bar(root, (bar_x, (top + bottom) / 2 - h / 2), (pt(7.0), h), crate::plot::level_bar, crate::plot::MAP_RANGE, &steps_of(-15.0, 0.0, 5.0), "level re on axis (dB)", 7.5, EN);
-}
-
-fn map_axes(title: &str, ylabel: &str, show_x: bool, show_y: bool) -> Axes {
-    let mut a = Axes::freq(EN, title, (300.0, 20000.0), (-90.0, 90.0), ylabel);
-    a.x_ticks = vec![1000.0, 10000.0];
-    a.y_ticks = steps_of(-90.0, 90.0, 45.0);
-    a.show_xlabels = show_x;
-    a.show_ylabels = show_y;
-    a.x_grid = false;
-    a.y_grid = false;
-    a.title_size = 8.0;
-    a
-}
-
 /// The vertical directivity of the two-way, plain dome and waveguide, with LR2, LR4 and brickwall.
 pub fn directivity(dir: &Path) {
     let f = log_grid(300.0, 20000.0, 48);
     let angles: Vec<f64> = (0..=180).map(|i| -90.0 + i as f64).collect();
     let kinds = [Kind::Lr2, Kind::Lr4, Kind::Fir];
     let layouts = [two_way(), crate::speaker::two_way_waveguide()];
-    let data: Vec<Vec<Vec<f64>>> = layouts.iter().flat_map(|l| kinds.iter().map(|k| vertical_map(l, *k, &f, &angles)).collect::<Vec<_>>()).collect();
+    let data: Vec<Vec<Vec<f64>>> = layouts.iter().flat_map(|l| kinds.iter().map(|k| map(l, *k, &f, &angles)).collect::<Vec<_>>()).collect();
     let mut axes = Vec::new();
     for (r, name) in ["plain dome", "dome in a waveguide"].iter().enumerate() {
         for (c, k) in kinds.iter().enumerate() {
             let title = if r == 0 { kind_label(EN, *k) } else { String::new() };
             let ylabel = if c == 0 { format!("{name}\nvertical angle (deg)") } else { String::new() };
-            axes.push(map_axes(&title, &ylabel, r == 1, c == 0));
+            axes.push(map_axes(EN, &title, &ylabel, r == 1, c == 0));
         }
     }
     let zone = pt(6.0) + crate::plot::colour_bar_width(pt(7.0), &steps_of(-15.0, 0.0, 5.0), "level re on axis (dB)", 7.5, EN);
@@ -293,97 +197,21 @@ pub fn directivity(dir: &Path) {
         let gw = (W * crate::plot::PPI) as i32 - zone;
         let (grid, _) = root.split_horizontally(gw);
         let p = layout(&grid, 2, 3, &mut axes);
-        maps(root, &p, &axes, &data, &f, gw + pt(6.0), None);
+        directivity_maps(root, &p, &axes, &data, &f, (gw + pt(6.0), pt(7.0), 7.5), None, EN);
     });
     save_web(&svg, dir, "directivity");
 }
 
 /// The vertical directivity of the seven loudspeakers of the library with LR4 crossovers.
 pub fn directivity_library(dir: &Path) {
-    let f = log_grid(300.0, 20000.0, 48);
-    let angles: Vec<f64> = (0..=180).map(|i| -90.0 + i as f64).collect();
-    let layouts = crate::speaker::library();
-    let data: Vec<Vec<Vec<f64>>> = layouts.iter().map(|l| vertical_map(l, Kind::Lr4, &f, &angles)).collect();
-    let mut axes = Vec::new();
-    for i in 0..8 {
-        let (r, c) = (i / 4, i % 4);
-        let title = layouts.get(i).map(|l| family_label(EN, &l.name).replace('\n', " ")).unwrap_or_default();
-        axes.push(map_axes(&title, if c == 0 { "vertical angle (deg)" } else { "" }, r == 1, c == 0));
-    }
-    let svg = render(W, 3.6, |root| {
-        let p = layout(root, 2, 4, &mut axes);
-        // The eighth cell holds the colour bar.
-        let (bx, by) = p[7].get_base_pixel();
-        let (_, bh) = p[7].dim_in_pixel();
-        maps(root, &p[..7], &axes[..7], &data, &f, bx + pt(10.0), Some((by + pt(14.0), by + bh as i32 - pt(22.0))));
-    });
-    save_web(&svg, dir, "directivity-library");
+    save_web(&crate::figures::library_directivity_svg(EN, W, 3.6, pt(7.0), 7.5), dir, "directivity-library");
 }
 
 /// The two ways of reading the colouration, for each crossover: the deviation of the room's
 /// averaged response (top) and of the floor and ceiling bounces taken one by one (bottom), in the
 /// living room, with the medians of the 300 rooms.
-pub fn methods(study: &Study, setups: &[crate::room::Setup], dir: &Path) {
-    use crate::analysis::{line_residual, local_anomaly, ANOMALY_BAND};
-    let kinds = KINDS;
-    let fs = study.freqs();
-    let living = study.named_index("living");
-    let (fp, per_layout) = crate::figures::path_spectra(setups);
-    let paths = &per_layout.iter().find(|(l, _)| l == "two_way").unwrap().1;
-    let w = crate::analysis::fit_weights(study, crate::analysis::Sp::Sphere, Which::Steady);
-    let band = |f: &[f64]| f.iter().cloned().filter(|x| *x >= ANOMALY_BAND.0 && *x <= ANOMALY_BAND.1).collect::<Vec<f64>>();
-    let mut axes = Vec::new();
-    for r in 0..2 {
-        for (c, k) in kinds.iter().enumerate() {
-            let ylabel = match (r, c) {
-                (0, 0) => "the room's averaged\nresponse (dB)",
-                (1, 0) => "floor and ceiling\nbounces (dB)",
-                _ => "",
-            };
-            let title = if r == 0 { kind_label(EN, *k) } else { String::new() };
-            let mut a = Axes::freq(EN, &title, (600.0, 8000.0), (-32.0, 6.0), ylabel);
-            a.x_ticks = vec![1000.0, 2000.0, 5000.0];
-            a.y_ticks = steps_of(-30.0, 0.0, 10.0);
-            a.show_xlabels = r == 1;
-            a.show_ylabels = c == 0;
-            a.title_size = 8.0;
-            axes.push(a);
-        }
-    }
-    let svg = render(W, 4.0, |root| {
-        let p = layout(root, 2, 4, &mut axes);
-        for (c, k) in kinds.iter().enumerate() {
-            let v = format!("two_way-upright-{}", k.name());
-            let col = kind_color(*k);
-            // Top: the living room's steady-state response, its deviation from the straight line.
-            let ax = &axes[c];
-            let mut ch = ax.build(&p[c]);
-            let (res, _) = line_residual(fs, &study.room_response(&v, Which::Steady, living), ANOMALY_BAND);
-            line(&mut ch, ax, &band(fs), &res, col, LW, Dash::Solid, None);
-            let rooms: Vec<f64> = study.random().map(|r| local_anomaly(fs, &study.room_response(&v, Which::Steady, r))).collect();
-            let med = crate::special::median(&rooms);
-            label(root, &format!("300 rooms: {med:.1} dB"), ch.backend_coord(&(650.0f64.log10(), -30.0)), 7.0, &INK, HPos::Left, VPos::Bottom, false);
-            // Bottom: the floor and ceiling bounces, each on its own.
-            let ax = &axes[4 + c];
-            let mut ch = ax.build(&p[4 + c]);
-            let per = &paths.iter().find(|(kk, _)| kk == k).unwrap().1;
-            for (path, dash) in [("floor", Dash::Solid), ("ceiling", Dash::Dashed)] {
-                let pw = &per.iter().find(|x| x.0 == path).unwrap().1;
-                let (res, _) = line_residual(&fp, pw, ANOMALY_BAND);
-                line(&mut ch, ax, &band(&fp), &res, col, LW, dash, None);
-            }
-            let vert = crate::figures::colouration_values(study, &v, w)[4];
-            label(root, &format!("300 rooms: {vert:.1} dB"), ch.backend_coord(&(650.0f64.log10(), -30.0)), 7.0, &INK, HPos::Left, VPos::Bottom, false);
-            if c == 3 {
-                let entries = vec![
-                    (Swatch::Line(INK, LW, Dash::Solid), "floor".to_string()),
-                    (Swatch::Line(INK, LW, Dash::Dashed), "ceiling".to_string()),
-                ];
-                crate::plot::legend_at(root, ch.backend_coord(&(2600.0f64.log10(), -9.0)), &entries, 1, 6.5, Ground::Plain);
-            }
-        }
-    });
-    save_web(&svg, dir, "two-methods");
+pub fn methods(study: &Study, spectra: &crate::figures::Spectra, dir: &Path) {
+    save_web(&crate::figures::methods_svg(study, spectra, EN, W, 4.0), dir, "two-methods");
 }
 
 /// Every figure of both articles: ``dir/standard-problems`` and ``dir/standard-proposal``.
@@ -394,7 +222,7 @@ pub fn all(study: &Study, setups: &[crate::room::Setup], s: &Summary, dir: &Path
     sound_power(study, &a);
     pir_vs_rooms(study, &a);
     directivity(&a);
-    methods(study, setups, &a);
+    methods(study, &crate::figures::path_spectra(setups), &a);
     let b = dir.join("standard-proposal");
     directivity_library(&b);
     sp_library(s, &b);
