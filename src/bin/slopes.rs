@@ -6,6 +6,8 @@
 //! 300 random rooms (results/slopes/), then the report.
 //! ``cargo run --release --bin slopes -- report``: the report alone, from results/slopes/, written to
 //! `protocol/crossover-slopes-results.md`.
+//! ``cargo run --release --bin slopes -- tex``: the report's tables and numbers (paper/tables/twin_*.tex,
+//! slopes_numbers.tex, in English and in French), from results/slopes/.
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -14,6 +16,8 @@ use std::time::Instant;
 use inroom::crossover::KINDS;
 use inroom::room::Setup;
 use inroom::slopes::{self, Calibration, Calibrator, LayoutValues, Summary, ANCHOR_Q1_DB, CAL_FREQS, CAL_QS, PATHWAYS};
+use inroom::crossover::Kind;
+use inroom::plot::Lang;
 use inroom::special::{median, percentile};
 use inroom::{ensemble, speaker};
 
@@ -26,7 +30,8 @@ fn main() {
             report(&root);
         }
         Some("report") => report(&root),
-        _ => eprintln!("usage: slopes calibrate | run | report"),
+        Some("tex") => tex(&root),
+        _ => eprintln!("usage: slopes calibrate | run | report | tex"),
     }
 }
 
@@ -246,4 +251,119 @@ fn report(root: &Path) {
     let path = root.join("protocol/crossover-slopes-results.md");
     std::fs::write(&path, md).unwrap();
     eprintln!("written to {}", path.display());
+}
+
+/// Tag of a loudspeaker and of a crossover in the macros (as in `tables.rs`).
+fn family_tag(name: &str) -> &'static str {
+    match name {
+        "two_way" => "Dome",
+        "two_way_wg" => "Wg",
+        "coaxial" => "Coax",
+        "mtm" => "Mtm",
+        "three_way_monitor" => "Monitor",
+        "three_way_tower" => "TowerThree",
+        _ => "TowerFour",
+    }
+}
+
+fn kind_word(k: Kind) -> &'static str {
+    match k {
+        Kind::Lr2 => "LrTwo",
+        Kind::Lr4 => "LrFour",
+        Kind::Lr8 => "LrEight",
+        Kind::Fir => "Fir",
+    }
+}
+
+const PATH_WORDS: [&str; 5] = ["Seated", "Standing", "Refl", "Ears", "Steady"];
+
+fn tex(root: &Path) {
+    let cal = slopes::calibrate(&Calibrator::new(), Summary::A);
+    let cal_b = slopes::calibrate(&Calibrator::new(), Summary::B);
+    let t = cal.unit;
+    let library: Vec<LayoutValues> = speaker::library().iter().map(|l| load(root, &format!("{}.json", l.name))).collect();
+    let side = load(root, "two_way-side.json");
+    let setups = ensemble::load(&root.join("data/rooms.json"));
+    let toe: Vec<String> = setups.iter().filter(|s| s.key.is_none()).map(|s| s.meta.toe.clone()).collect();
+    let med = |v: &LayoutValues, ki: usize, p: usize| median(&v.rooms.iter().map(|r| r.d[ki][p] / t).collect::<Vec<_>>());
+    let delta = |v: &LayoutValues, a: usize, b: usize, p: usize| median(&v.rooms.iter().map(|r| (r.d[a][p] - r.d[b][p]) / t).collect::<Vec<_>>());
+    let tested: Vec<&LayoutValues> = library.iter().filter(|v| v.name != "coaxial").collect();
+    for lang in [Lang::En, Lang::Fr] {
+        let dir = match lang {
+            Lang::En => root.join("paper/tables"),
+            Lang::Fr => root.join("paper/tables/fr"),
+        };
+        let num = |x: f64, p: usize| lang.tex(x, p);
+        let signed = |x: f64| {
+            let s = lang.tex(x.abs(), 2);
+            if x < -0.005 { format!("$-${s}") } else if x > 0.005 { format!("$+${s}") } else { s }
+        };
+        // The two two-ways, every crossover: medians of the five pathways.
+        let mut body = Vec::new();
+        for (n, v) in library.iter().filter(|v| v.name == "two_way" || v.name == "two_way_wg").enumerate() {
+            if n > 0 {
+                body.push("\\addlinespace".to_string());
+            }
+            let fam = if v.name == "two_way" { lang.t("dome", "dôme") } else { lang.t("waveguide", "guide d’onde") };
+            for (ki, k) in KINDS.iter().enumerate() {
+                let cells: Vec<String> = (0..5).map(|p| num(med(v, ki, p), 2)).collect();
+                body.push(format!("{fam}, {} & {} \\\\", inroom::figures::kind_label(lang, *k), cells.join(" & ")));
+            }
+        }
+        std::fs::write(dir.join("twin_dome.tex"), body.join("\n") + "\n").unwrap();
+        // The paired differences, LR2 and LR4 against the brickwall, six loudspeakers.
+        let mut body = Vec::new();
+        for (n, a) in ["lr2", "lr4"].iter().enumerate() {
+            let ka = KINDS.iter().position(|k| k.name() == *a).unwrap();
+            if n > 0 {
+                body.push("\\addlinespace".to_string());
+            }
+            body.push(format!("\\multicolumn{{6}}{{l}}{{\\emph{{{} $-$ {}}}}} \\\\", a.to_uppercase(), lang.t("brickwall FIR", "FIR brickwall")));
+            for v in &tested {
+                let label = inroom::library_figures::family_label(lang, &v.name).replace('\n', " ");
+                let cells: Vec<String> = (0..5).map(|p| signed(delta(v, ka, 3, p))).collect();
+                body.push(format!("{label} & {} \\\\", cells.join(" & ")));
+            }
+        }
+        std::fs::write(dir.join("twin_delta.tex"), body.join("\n") + "\n").unwrap();
+
+        // Numbers.
+        let mut m: Vec<(String, String)> = Vec::new();
+        m.push(("slT".into(), num(t, 2)));
+        m.push(("slLfiftyA".into(), num(cal.l50, 1)));
+        m.push(("slLfiftyB".into(), num(cal_b.l50, 1)));
+        m.push(("slDipFifty".into(), num(cal.dips[1][2].unwrap_or(f64::NAN), 0)));
+        m.push(("slDipTen".into(), num(cal.dips[1][1].unwrap_or(f64::NAN), 1)));
+        m.push(("slPeakTen".into(), num(cal.peaks[1][1].unwrap_or(f64::NAN), 1)));
+        m.push(("slRooms".into(), format!("{}", library[0].rooms.len())));
+        let lr4 = 1;
+        let p1 = side.rooms.iter().map(|r| r.d[lr4][0] / t).collect::<Vec<_>>();
+        m.push(("slControl".into(), num(percentile(&p1, 75.0), 2)));
+        m.push(("slControlMedian".into(), num(median(&p1), 2)));
+        let by = |w: &str| -> Vec<f64> { p1.iter().zip(&toe).filter(|(_, x)| *x == w).map(|(v, _)| *v).collect() };
+        m.push(("slAimRooms".into(), format!("{}", by("aim").len())));
+        m.push(("slAimMedian".into(), num(median(&by("aim")), 2)));
+        m.push(("slStraightMedian".into(), num(median(&by("straight")), 2)));
+        for v in &library {
+            let tag = family_tag(&v.name);
+            for (ki, k) in KINDS.iter().enumerate() {
+                for (p, w) in PATH_WORDS.iter().enumerate() {
+                    m.push((format!("sl{tag}{}{w}", kind_word(*k)), num(med(v, ki, p), 2)));
+                }
+                m.push((format!("slBlend{tag}{}", kind_word(*k)), num(median(&v.rooms.iter().map(|r| r.blend[ki] / t).collect::<Vec<_>>()), 2)));
+            }
+        }
+        for (a, b, word) in [(0usize, 3usize, "LrTwoFir"), (1, 3, "LrFourFir"), (2, 3, "LrEightFir"), (0, 1, "LrTwoLrFour")] {
+            for (p, w) in PATH_WORDS.iter().enumerate() {
+                let d: Vec<f64> = tested.iter().map(|v| delta(v, a, b, p)).collect();
+                let (lo, hi) = (d.iter().cloned().fold(f64::INFINITY, f64::min), d.iter().cloned().fold(f64::NEG_INFINITY, f64::max));
+                m.push((format!("slD{word}{w}Min"), num(lo, 2)));
+                m.push((format!("slD{word}{w}Max"), num(hi, 2)));
+                m.push((format!("slD{word}{w}Up"), format!("{}", d.iter().filter(|x| **x >= 0.5).count())));
+            }
+        }
+        let text: String = m.iter().map(|(k, v)| format!("\\newcommand{{\\n{k}}}{{{v}}}\n")).collect();
+        std::fs::write(dir.join("slopes_numbers.tex"), text).unwrap();
+    }
+    eprintln!("written: paper/tables/{{,fr/}}twin_dome.tex, twin_delta.tex, slopes_numbers.tex");
 }

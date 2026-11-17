@@ -20,6 +20,7 @@
 \sisetup{detect-all, per-mode=symbol}
 \graphicspath{{figures/}}
 \input{tables/numbers}
+\input{tables/slopes_numbers}
 \makeatletter
 \newcommand{\rows}[1]{\@@input tables/#1.tex }
 \makeatother
@@ -68,7 +69,10 @@ loudspeaker rather than the pressure at the ear, and how much of it is heard is 
 curve becomes smoother only when the drivers' directivities match at the crossover. Added with their phases at the listener's ears and
 smoothed by the auditory filters, the paths change the steady state little; in the early sound at a
 fixed point the comb of the floor and ceiling bounces outweighs any crossover's colouration, and the
-Linkwitz-Riley notch, which takes these reflections out near the crossover, removes their comb there. On seven simulated loudspeakers (two-ways, a coaxial, an MTM, a horizontal
+Linkwitz-Riley notch, which takes these reflections out near the crossover, removes their comb there. Compared
+with the same loudspeaker without interference between its drivers, on an auditory scale calibrated on
+published thresholds and in a test fixed before it was run, the low slopes depart more than the
+brickwall on four pathways of five, the early sound at the ears included. On seven simulated loudspeakers (two-ways, a coaxial, an MTM, a horizontal
 three-way monitor, two towers), the two orbits are enough for a standard that matches the rooms: rebuilt
 driver by driver they give the sound power within \nlibSpWaysMax\,dB RMS, $0.1\,\mathrm{LW} + 0.9\,\mathrm{SP}$
 predicts the in-room response within \nlibPropSteadyMin--\nlibPropSteadyMax\,dB where the PIR is
@@ -510,6 +514,7 @@ directional dome by 0.2 to 0.6\,dB, the effect of the spherical squares (section
 \end{figure}
 
 \subsection{Upright or on its side}
+\label{sec:side}
 
 Laid on its side, the loudspeaker lobes horizontally instead of vertically. The Listening Window sees
 the difference (figure~\ref{fig:rotation}): about 1\,dB down at 2\,kHz upright, 2.3 to 2.6\,dB on its side;
@@ -855,6 +860,119 @@ for the early sound at a fixed point, physics gives the comb, which the energy s
 what each reflection carries from the loudspeaker. When this study compares crossovers by $C$, it
 compares what the loudspeakers send; what listeners hear remains to be tested.
 
+\subsection{A test against an interference-free twin}
+\label{sec:twin}
+
+The measures of this section rank the crossovers differently, and each judges against a reference that
+leans one way. The roughness against a one-octave smoothing does not see a deviation broader than an
+octave, which is where a low slope puts its lobing. The early sound at a fixed point is judged against a
+flat response: a crossover that removes reflections scores better for that alone, and the
+omnidirectional source scores worst of all (table~\ref{tab:coherent}). Whether low slopes harm what the
+listener receives was therefore tested on its own, by a protocol written and committed with its decision
+rule before anything was computed (\texttt{protocol/crossover-slopes.md} in the repository).
+
+\emph{The reference} is each variant's twin without interference: the same drivers, filters and
+diffraction, every driver moved at each frequency to the drivers' centre weighted by their power on the
+axis,
+\begin{equation}
+\vect s_0(f) = \frac{\sum_d |X_d H_d(\text{axis})|^2\,\vect c_d}{\sum_d |X_d H_d(\text{axis})|^2},
+\qquad H^{\text{twin}}_d(\vect u) = H_d(\vect u)\, e^{-jk\,\vect u\cdot(\vect c_d - \vect s_0)}.
+\end{equation}
+Outside the band where the drivers overlap the twin is the loudspeaker itself. Within it, the twin keeps
+each driver's directivity, blended by the crossover, and removes only the path difference between the
+drivers. What separates a variant from its twin is the lobing, whatever it does: a notch that removes
+part of a reflection near the crossover counts as a change like any other.
+
+\emph{The measure} follows hearing. Each response becomes an excitation pattern, its power smoothed by
+the auditory filters of Glasberg and Moore \cite{glasberg1990} at every quarter of an ERB from 200\,Hz to
+10\,kHz. The distance between two patterns is the root of the sum of their squared differences in dB
+over ERB number, so that a broad change counts more than a narrow one of the same depth. Before any
+loudspeaker was computed, the measure was calibrated on resonances: a peak of $Q = 50$ reaches the value
+of a 1.5\,dB peak of $Q = 1$ at \nslLfiftyA\,dB, where listeners need about 10\,dB against 1 to 2\,dB
+\cite{toole1988}; the other candidate, the largest change in any one channel, gave \nslLfiftyB\,dB and
+was set aside. Without being fitted to it, the measure also needs a dip of $Q = 50$ about
+\nslDipFifty\,dB deep to match that peak, the asymmetry between peaks and dips that Bücklein reports
+\cite{bucklein1981}. Distances are given in units of $T$, the value of the 1.5\,dB, $Q = 1$ peak: about
+one threshold, as a scale.
+
+\emph{Five pathways} were compared, for the seven loudspeakers of section~\ref{sec:proposal} with their
+four crossovers in the \nslRooms\ random rooms, every path leaving the loudspeaker in the far field: the
+direct sound to the seated listener (P1s) and to a standing one, ears at 1.65\,m (P1d); the spectrum of
+each first reflection, weighted by the energy it brings (P2); the early sound at the fourteen points of
+section~\ref{sec:interference}, with its phases (P3); the steady state, in energy (P4).
+
+\emph{The checks.} The first run stopped at them. The twin then moved every driver to the baffle centre,
+which in a sum with phases moves the source too: the coaxial, whose drivers share one centre, differed
+from its twin by 1.06\,$T$ in P3. The positive control, the two-way laid on its side, was judged on the
+median of the rooms, half of which aim the loudspeaker at the listener, whose direct sound no orientation
+makes lobe (\nslAimMedian\,$T$ in those \nslAimRooms\ rooms, \nslStraightMedian\,$T$ where the
+loudspeaker is parallel to the side walls). An amendment, committed before the second run, gave the twin
+the centre above and judged the control on the quarter of listeners that section~\ref{sec:side}
+quotes, a criterion set after seeing the data: \nslControl\,$T$, above the 1\,$T$ required.
+The coaxial then equals its twin to rounding, and P1, P2 and P4, which are powers, are unchanged.
+
+\begin{table}[t]
+\centering
+\caption{Departure from the interference-free twin, two-way loudspeaker ($T$, median of the
+\nslRooms\ rooms): direct sound to a seated and to a standing listener, each first reflection, early
+sound at the ears with its phases, steady state.}
+\label{tab:twin}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+& P1s & P1d & P2 & P3 & P4 \\
+& seated & standing & reflections & early, ears & steady \\
+\midrule
+\rows{twin_dome}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{LR2 and LR4 against the brickwall: median over the rooms of the paired difference of their
+departures from the twin ($T$), the six loudspeakers whose drivers are apart. The protocol's rule: a
+pathway supports the view that low slopes harm when the difference reaches $+0.5\,T$ for at least five of
+the six.}
+\label{tab:twin-delta}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+& P1s & P1d & P2 & P3 & P4 \\
+\midrule
+\rows{twin_delta}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{The low slopes depart more} (tables~\ref{tab:twin} and~\ref{tab:twin-delta}). LR2 departs from its
+twin by at least 0.5\,$T$ more than the brickwall for at least five of the six loudspeakers, the rule set in
+advance, on four pathways: the standing listener's direct sound (up to \nslDLrTwoFirStandingMax\,$T$),
+each reflection (\nslDLrTwoFirReflMin\ to \nslDLrTwoFirReflMax\,$T$), the early sound at the ears (up to
+\nslDLrTwoFirEarsMax\,$T$) and the steady state (\nslDLrTwoFirSteadyMin\ to \nslDLrTwoFirSteadyMax\,$T$).
+For a seated listener the direct sound gives no general answer: the compact loudspeakers barely lobe at
+the angles where people sit (\nslDomeLrTwoSeated\,$T$ for the two-way with LR2), the towers do
+(\nslTowerThreeLrTwoSeated\ and \nslTowerFourLrTwoSeated\,$T$). LR4 and LR8 also depart more than the
+brickwall on the standing direct sound, each reflection and the steady state, less than LR2; at the ears
+their difference passes 0.5\,$T$ for \nslDLrFourFirEarsUp\ and \nslDLrEightFirEarsUp\ loudspeakers of six.
+
+\emph{Hearing smooths the brickwall's notches.} Ten to thirteen times narrower than a Linkwitz-Riley's,
+they fall within one auditory filter: the two-way's reflections depart from the twin's by
+\nslDomeFirRefl\,$T$ with the brickwall, \nslDomeLrTwoRefl\,$T$ with LR2. At the ears, the reading of
+section~\ref{sec:interference} turns around. Against a flat response LR2 looked smoothest, because its
+notch removes the floor and ceiling bounces near the crossover; against the twin, that removal is a broad
+change of the early sound, \nslDomeLrTwoEars\,$T$ against \nslDomeFirEars\,$T$ for the brickwall, the rest
+of the spectrum being reflected as before.
+
+\emph{Exceptions and limits.} In the MTM the two woofers lobe between themselves below the crossover,
+which no slope changes (\nslMtmFirRefl\,$T$ in P2 with the brickwall). The towers, computed in the far
+field, carry the largest numbers and the least reliable ones. Without any lobing, the slope also changes
+how the drivers' directivities blend: in steady state each twin departs from the brickwall's twin by up
+to \nslBlendMonitorLrTwo\,$T$ (the monitor with LR2), a difference this test describes without judging
+it. A departure from the twin is not a preference either: whether listeners prefer an early sound with
+fewer floor and ceiling reflections near the crossover, or the loudspeaker without interference, is for
+listening tests. The drivers are pistons, and the calibration rests on approximate published values.
+
 % =============================================================================================
 \clearpage
 \section{A two-orbit standard faithful to the rooms}
@@ -985,7 +1103,8 @@ of \nlibCorrIndex, and that of the floor and ceiling bounces, read on the vertic
 sides of the correlation are the same kind of quantity: the index reads on the orbits what the rooms'
 colouration reads path by path, what the loudspeaker sends into the reflections
 (section~\ref{sec:measures}). The correlation shows that the two orbits hold that information. It does
-not show that the index predicts what is heard.
+not show that the index predicts what is heard. Its roughness also misses the deviations broader than an
+octave, which carry most of what separates the crossovers in the test of section~\ref{sec:twin}.
 
 The averages keep flattering the low slopes: with the plain-dome two-way, the PIR's roughness is
 \nlibDomeLrTwoPir\,dB with LR2 and \nlibDomeFirPir\,dB with the brickwall, while the first reflections carry
@@ -1044,7 +1163,9 @@ how much of the difference is heard is for listening tests. Whether the in-room 
 on the drivers: where the woofer beams at the crossover and the tweeter does not, the brickwall turns
 the lobing dip into a step of directivity. Matching the directivities at the crossover (a waveguide)
 and narrowing the band where both drivers play (a steep crossover) address two different causes of the
-off-axis colouration.
+off-axis colouration. Tested against an interference-free twin on an auditory scale
+(section~\ref{sec:twin}), the low slopes depart more than the brickwall on four pathways of five, the early
+sound at the ears included; whether that departure is heard as worse is for listening tests.
 
 \subsection{An updated weighting}
 
@@ -1081,7 +1202,8 @@ salience of the floor bounce in the median plane \cite{bech1996,olive1989}), whi
 power responses captures. The colouration metrics are physical measures: the colouration of the paths
 and the orbit index describe the loudspeaker rather than the pressure at the ear (section~\ref{sec:measures}),
 and a narrow notch is harder to hear than a broad one of the same depth \cite{bucklein1981}, which the RMS
-deviation accounts for only through its width. The main loudspeaker is one two-way bookshelf in two versions; the library of
+deviation accounts for only through its width; the test of section~\ref{sec:twin} uses a measure on the
+auditory scale that accounts for it. The main loudspeaker is one two-way bookshelf in two versions; the library of
 section~\ref{sec:proposal} adds five families, one geometry each, and no cardioid.
 Finally the study uses CTA-2034-A; its revision B was not checked.
 
@@ -1101,7 +1223,10 @@ ceiling bounces; how much of it is heard, the paths reaching the ear as one sum,
 It gives a smoother in-room response only when the drivers' directivities match at the crossover. Added with their
 phases at the ears, the paths leave the steady state as it is; at a fixed point the early sound
 carries the comb of the floor and ceiling bounces, which a Linkwitz-Riley notch removes near the
-crossover along with the reflections, and which hearing with two ears attenuates. Seven
+crossover along with the reflections, and which hearing with two ears attenuates. Compared on an
+auditory scale with the same loudspeaker without interference, in a test fixed before it was run, the
+low slopes depart more than the brickwall on four pathways of five, the early sound at the ears
+included. Seven
 loudspeakers of five families confirm that the two orbits can carry a better standard: the sound
 power rebuilt driver by driver, $0.1\,\mathrm{LW} + 0.9\,\mathrm{SP}$ for the steady state, and the
 colouration of the reflections read direction by direction.
@@ -1154,6 +1279,9 @@ Soc. Am.}, vol.~99, no.~6, 1996.
 
 \bibitem{olive1989} S. E. Olive, F. E. Toole, ``The Detection of Reflections in Typical Rooms,''
 \emph{J. Audio Eng. Soc.}, vol.~37, no.~7/8, 1989.
+
+\bibitem{toole1988} F. E. Toole, S. E. Olive, ``The Modification of Timbre by Resonances: Perception and
+Measurement,'' \emph{J. Audio Eng. Soc.}, vol.~36, no.~3, pp.~122--142, 1988.
 
 \bibitem{bucklein1981} R. B\"ucklein, ``The Audibility of Frequency Response Irregularities,'' \emph{J. Audio
 Eng. Soc.}, vol.~29, no.~3, pp.~126--131, 1981.
