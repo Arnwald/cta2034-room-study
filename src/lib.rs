@@ -23,6 +23,7 @@ pub mod results;
 pub mod rng;
 pub mod room;
 pub mod signal;
+pub mod slopes;
 pub mod special;
 pub mod speaker;
 pub mod standard;
