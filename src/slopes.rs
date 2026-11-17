@@ -7,8 +7,21 @@
 //! root sum of squares over ERB number, and B, its largest value. Step 0 calibrates them on
 //! resonances whose detection thresholds are published.
 
+use std::f64::consts::PI;
+
+use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
+
 use crate::coherent::erb;
-use crate::signal::db10;
+use crate::constants::C;
+use crate::crossover::{self, KINDS};
+use crate::mat::Mat;
+use crate::room::{self, Setup};
+use crate::signal::{db10, study_grid};
+use crate::speaker::{roll, FarField, Layout};
+use crate::sphere;
+use crate::study::{MAX_ORDER, N_GRID};
+use crate::{dot, norm, sub, unit, Vec3, C32, C64};
 
 /// Band and spacing of the excitation patterns.
 pub const EX_LO: f64 = 200.0;
@@ -222,6 +235,255 @@ pub fn choose(cals: &[Calibration]) -> (usize, bool) {
     let best = (0..cals.len()).min_by(|&a, &b| score(&cals[a]).partial_cmp(&score(&cals[b])).unwrap()).unwrap();
     let ok = cals[best].l50 >= 5.0 && cals[best].l50 <= 20.0;
     (best, ok)
+}
+
+// ---------------------------------------------------------------------------------------------
+// The pathways: each variant against its interference-free twin
+// ---------------------------------------------------------------------------------------------
+
+/// Linear grid of the early sound added with its phases (Hz).
+pub const LIN_LO: f64 = 150.0;
+pub const LIN_HI: f64 = 12_000.0;
+pub const LIN_DF: f64 = 4.0;
+/// Ears of a standing listener (m).
+pub const STANDING_EAR: f64 = 1.65;
+/// Band over which a path's weight is averaged (Hz).
+pub const WEIGHT_BAND: (f64, f64) = (600.0, 8000.0);
+pub const PATHWAYS: [&str; 5] = ["P1s", "P1d", "P2", "P3", "P4"];
+
+/// One room's distances, every crossover (in the order of [`KINDS`]), in the raw units of summary
+/// A (divide by T).
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct RoomValues {
+    /// ``[kind][pathway]``: the variant against its twin.
+    pub d: Vec<[f64; 5]>,
+    /// ``[kind]``: P4, the twin against the FIR's twin (how the slope blends the directivities).
+    pub blend: Vec<f64>,
+    /// ``[kind]``: P2 over the floor and ceiling bounces only.
+    pub p2_vertical: Vec<f64>,
+    /// ``[kind]``: P3 with the two ears of each head averaged in power, mean over the seven heads.
+    pub p3_ears: Vec<f64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct LayoutValues {
+    pub name: String,
+    pub label: String,
+    pub roll: f64,
+    pub crossovers: Vec<f64>,
+    pub rooms: Vec<RoomValues>,
+}
+
+pub fn linear_grid() -> Vec<f64> {
+    let n = ((LIN_HI - LIN_LO) / LIN_DF).round() as usize;
+    (0..=n).map(|i| LIN_LO + i as f64 * LIN_DF).collect()
+}
+
+/// Complex values on ``src`` interpolated linearly in frequency onto ``dst``.
+fn interp_complex(src: &[f64], v: &[C64], dst: &[f64]) -> Vec<C64> {
+    dst.iter()
+        .map(|&x| {
+            let j = src.partition_point(|&s| s <= x).saturating_sub(1).min(src.len() - 2);
+            let t = (x - src[j]) / (src[j + 1] - src[j]);
+            v[j] * (1.0 - t) + v[j + 1] * t
+        })
+        .collect()
+}
+
+/// ``sum_d X_d H_d(u)``, the twin's with each driver moved to the baffle centre:
+/// ``H_d(u) exp(-j k u.c_d)``. ``u``: the direction in the loudspeaker's own frame.
+fn combine(x: &[Vec<C64>], h: &[Vec<C32>], u: &Vec3, centres: &[Vec3], k: &[f64], twin: bool) -> Vec<C64> {
+    let nf = k.len();
+    let mut out = vec![C64::new(0.0, 0.0); nf];
+    for (d, hd) in h.iter().enumerate() {
+        let us = dot(u, &centres[d]);
+        for j in 0..nf {
+            let mut v = x[d][j] * C64::new(hd[j].re as f64, hd[j].im as f64);
+            if twin {
+                v *= C64::from_polar(1.0, -k[j] * us);
+            }
+            out[j] += v;
+        }
+    }
+    out
+}
+
+fn band_mean(f: &[f64], v: &[f64]) -> f64 {
+    let (s, n) = f.iter().zip(v).filter(|(x, _)| **x >= WEIGHT_BAND.0 && **x <= WEIGHT_BAND.1).fold((0.0, 0), |(s, n), (_, y)| (s + y, n + 1));
+    s / n as f64
+}
+
+/// The distances of one layout, rolled by ``roll_deg`` about its axis, in every setup given
+/// (placed already: a tower's reference point half its height above the floor).
+pub fn run_layout(layout: &Layout, roll_deg: f64, setups: &[Setup]) -> LayoutValues {
+    let freqs = study_grid();
+    let lin = linear_grid();
+    let ex_s = Excitation::new(&freqs);
+    let ex_l = Excitation::new(&lin);
+    let far_s = FarField::new(layout, &freqs);
+    let far_l = FarField::new(layout, &lin);
+    let k_s: Vec<f64> = freqs.iter().map(|f| 2.0 * PI * f / C).collect();
+    let k_l: Vec<f64> = lin.iter().map(|f| 2.0 * PI * f / C).collect();
+    let centres: Vec<Vec3> = layout.drivers.iter().map(|d| d.centre()).collect();
+    let nd = centres.len();
+    let on = far_s.on_axis();
+    let xs: Vec<Vec<Vec<C64>>> = KINDS.iter().map(|&k| crossover::filters(k, &freqs, layout, &on)).collect();
+    let xl: Vec<Vec<Vec<C64>>> = xs.iter().map(|x| x.iter().map(|d| interp_complex(&freqs, d, &lin)).collect()).collect();
+
+    // The power on the quadrature, for the diffuse field: [kind][0 variant, 1 twin].
+    let grid = sphere::fibonacci(N_GRID);
+    let solid_angle = 4.0 * PI / N_GRID as f64;
+    let rgrid = roll(&grid, roll_deg);
+    let resp_grid = far_s.responses(&rgrid);
+    let nf = freqs.len();
+    let grid_power: Vec<[Mat<f32>; 2]> = (0..KINDS.len())
+        .map(|ki| {
+            [false, true].map(|twin| {
+                let mut m = Mat::<f32>::zeros(N_GRID, nf);
+                m.data.par_chunks_mut(nf).enumerate().for_each(|(g, row)| {
+                    let h: Vec<Vec<C32>> = (0..nd).map(|d| resp_grid[d].row(g).to_vec()).collect();
+                    for (o, v) in row.iter_mut().zip(combine(&xs[ki], &h, &rgrid[g], &centres, &k_s, twin)) {
+                        *o = v.norm_sqr() as f32;
+                    }
+                });
+                m
+            })
+        })
+        .collect();
+
+    let rooms: Vec<RoomValues> = setups
+        .par_iter()
+        .map(|setup| {
+            let im = room::image_sources(setup, MAX_ORDER);
+            assert_eq!(im.order[0], 0, "the direct sound first");
+            let n_img = im.order.len();
+            let w = room::specular_weights(setup, &im, &freqs);
+            let wl = room::specular_weights(setup, &im, &lin);
+            let dif = room::diffuse_weights(setup, &grid, solid_angle, &freqs, MAX_ORDER);
+            // Directions in the loudspeaker's own frame: the images, then the seated and the
+            // standing listener's direct sound.
+            let r = setup.receiver;
+            let stand = unit(&setup.to_speaker(&sub(&[r[0], r[1], STANDING_EAR], &setup.source)));
+            let mut dirs: Vec<Vec3> = im.direction.iter().map(unit).collect();
+            dirs.push(dirs[0]);
+            dirs.push(stand);
+            let dirs = roll(&dirs, roll_deg);
+            let resp = |far: &FarField, u: &Vec3| -> Vec<Vec<C32>> {
+                (0..nd)
+                    .map(|d| {
+                        let mut row = vec![C32::new(0.0, 0.0); far.freqs.len()];
+                        far.response(d, u, &mut row);
+                        row
+                    })
+                    .collect()
+            };
+            let h_s: Vec<Vec<Vec<C32>>> = dirs.iter().map(|u| resp(&far_s, u)).collect();
+            let early: Vec<usize> = (0..n_img).filter(|&i| im.order[i] <= 1).collect();
+            let h_l: Vec<Vec<Vec<C32>>> = early.iter().map(|&i| resp(&far_l, &dirs[i])).collect();
+            let pts = crate::coherent::points(setup);
+            let first: Vec<usize> = (0..n_img).filter(|&i| im.order[i] == 1).collect();
+
+            // Excitation patterns (dB) of every response: [kind][version] -> (P1s, P1d, P2 by
+            // first-order path, P3 by point, P4).
+            struct Patterns {
+                p1s: Vec<f64>,
+                p1d: Vec<f64>,
+                p2: Vec<Vec<f64>>,
+                p3: Vec<Vec<f64>>,
+                p3_pow: Vec<Vec<f64>>,
+                p4: Vec<f64>,
+                band_power: Vec<f64>,
+            }
+            let patterns = |ki: usize, twin: bool| -> Patterns {
+                let spectra: Vec<Vec<f64>> = dirs
+                    .iter()
+                    .zip(&h_s)
+                    .map(|(u, h)| combine(&xs[ki], h, u, &centres, &k_s, twin).iter().map(|c| c.norm_sqr()).collect())
+                    .collect();
+                let mut e = vec![0.0; nf];
+                for i in 0..n_img {
+                    for j in 0..nf {
+                        e[j] += w.row(i)[j] * spectra[i][j];
+                    }
+                }
+                let gp = &grid_power[ki][twin as usize];
+                for g in 0..N_GRID {
+                    let (dr, pr) = (dif.row(g), gp.row(g));
+                    for j in 0..nf {
+                        e[j] += dr[j] * pr[j] as f64;
+                    }
+                }
+                // The early sound with its phases at the fourteen points.
+                let a: Vec<Vec<C64>> = early
+                    .iter()
+                    .zip(&h_l)
+                    .map(|(&i, h)| {
+                        let c = combine(&xl[ki], h, &dirs[i], &centres, &k_l, twin);
+                        c.iter().zip(wl.row(i)).map(|(v, wk)| v * (wk.sqrt() * im.distance[i])).collect()
+                    })
+                    .collect();
+                let p3_pow: Vec<Vec<f64>> = pts
+                    .iter()
+                    .map(|p| {
+                        let mut s = vec![C64::new(0.0, 0.0); lin.len()];
+                        for (ai, &i) in a.iter().zip(&early) {
+                            let d = norm(&sub(p, &im.position[i]));
+                            for (j, sj) in s.iter_mut().enumerate() {
+                                *sj += ai[j] * C64::from_polar(1.0 / d, -k_l[j] * d);
+                            }
+                        }
+                        ex_l.apply(&s.iter().map(|c| c.norm_sqr()).collect::<Vec<_>>())
+                    })
+                    .collect();
+                Patterns {
+                    p1s: ex_s.db(&spectra[n_img]),
+                    p1d: ex_s.db(&spectra[n_img + 1]),
+                    p2: first.iter().map(|&i| ex_s.db(&spectra[i])).collect(),
+                    p3: p3_pow.iter().map(|p| p.iter().map(|v| db10(*v)).collect()).collect(),
+                    p3_pow,
+                    p4: ex_s.db(&e),
+                    band_power: first.iter().map(|&i| band_mean(&freqs, &spectra[i])).collect(),
+                }
+            };
+            let pats: Vec<[Patterns; 2]> = (0..KINDS.len()).map(|ki| [patterns(ki, false), patterns(ki, true)]).collect();
+            let dist = |a: &[f64], b: &[f64]| summary_a(&difference(a, b));
+
+            // The weight of each first-order path: its room weight times the twins' power in its
+            // direction (the four crossovers averaged), over 600 Hz-8 kHz.
+            let path_w: Vec<f64> = first
+                .iter()
+                .enumerate()
+                .map(|(n, &i)| band_mean(&freqs, w.row(i)) * pats.iter().map(|p| p[1].band_power[n]).sum::<f64>() / KINDS.len() as f64)
+                .collect();
+            let vertical: Vec<bool> = first.iter().map(|&i| matches!(im.first[i], Some(4) | Some(5))).collect();
+            let weighted = |v: &dyn Fn(usize) -> f64, keep: &dyn Fn(usize) -> bool| {
+                let (mut s, mut n) = (0.0, 0.0);
+                for (k, wk) in path_w.iter().enumerate() {
+                    if keep(k) {
+                        s += wk * v(k);
+                        n += wk;
+                    }
+                }
+                s / n
+            };
+            let fir = KINDS.len() - 1;
+            let mut out = RoomValues::default();
+            for [v, t] in pats.iter() {
+                let p2 = |k: usize| dist(&v.p2[k], &t.p2[k]);
+                let p3 = v.p3.iter().zip(&t.p3).map(|(a, b)| dist(a, b)).sum::<f64>() / pts.len() as f64;
+                out.d.push([dist(&v.p1s, &t.p1s), dist(&v.p1d, &t.p1d), weighted(&p2, &|_| true), p3, dist(&v.p4, &t.p4)]);
+                out.blend.push(dist(&t.p4, &pats[fir][1].p4));
+                out.p2_vertical.push(weighted(&p2, &|k| vertical[k]));
+                let ears = |p: &Patterns| -> Vec<Vec<f64>> {
+                    p.p3_pow.chunks(2).map(|e| e[0].iter().zip(&e[1]).map(|(a, b)| db10(0.5 * (a + b))).collect()).collect()
+                };
+                let (ev, et) = (ears(v), ears(t));
+                out.p3_ears.push(ev.iter().zip(&et).map(|(a, b)| dist(a, b)).sum::<f64>() / ev.len() as f64);
+            }
+            out
+        })
+        .collect();
+    LayoutValues { name: layout.name.clone(), label: layout.label.clone(), roll: roll_deg, crossovers: layout.crossovers.clone(), rooms }
 }
 
 #[cfg(test)]
