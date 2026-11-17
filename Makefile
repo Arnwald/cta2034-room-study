@@ -1,6 +1,6 @@
-.PHONY: all test study coherent library figures articles paper clean
+.PHONY: all test study coherent library slopes figures articles paper clean
 
-all: study coherent library figures paper
+all: study coherent library slopes figures paper
 
 test:
 	cargo test --release
@@ -14,6 +14,10 @@ coherent:
 library:
 	cargo run --release --bin library
 	cargo run --release --bin standard
+
+slopes:
+	cargo run --release --bin slopes -- run
+	cargo run --release --bin slopes -- tex
 
 figures:
 	cargo run --release --bin figures

@@ -22,6 +22,7 @@
 
 \graphicspath{{figures/fr/}}
 \input{tables/fr/numbers}
+\input{tables/fr/slopes_numbers}
 \makeatletter
 \newcommand{\rows}[1]{\@@input tables/fr/#1.tex }
 \makeatother
@@ -73,7 +74,10 @@ relève des tests d'écoute. La courbe dans la pièce ne devient plus régulièr
 des haut-parleurs se raccordent. Sommés avec leurs phases aux oreilles de l'auditeur et lissés par les filtres auditifs,
 les trajets changent peu le régime établi~; dans le son précoce en un point fixe, le peigne des rebonds
 sur le sol et le plafond l'emporte sur la coloration de tous les filtres, et le creux du Linkwitz-Riley,
-qui retire ces réflexions près du raccordement, y retire aussi leur peigne. Sur sept enceintes simulées
+qui retire ces réflexions près du raccordement, y retire aussi leur peigne. Comparées à la même enceinte
+sans interférences entre ses haut-parleurs, sur une échelle auditive étalonnée sur des seuils publiés et
+dans un test fixé avant d'être lancé, les pentes faibles s'écartent davantage que le brickwall sur quatre
+voies sur cinq, son précoce aux oreilles compris. Sur sept enceintes simulées
 (deux voies, coaxiale, MTM, moniteur trois voies horizontal, deux colonnes), les deux orbites suffisent à
 une norme conforme aux pièces~: reconstruites haut-parleur par haut-parleur, elles donnent la puissance à
 \nlibSpWaysMax\,dB RMS près, $0,1\,\mathrm{LW} + 0,9\,\mathrm{SP}$ prédit la réponse dans la pièce à
@@ -536,6 +540,7 @@ orbites surestiment le dôme directif de 0,2 à 0,6\,dB, effet des carrés sphé
 \end{figure}
 
 \subsection{Debout ou couchée}
+\label{sec:side}
 
 Couchée sur le flanc, l'enceinte forme ses lobes à l'horizontale au lieu de la verticale. La fenêtre
 d'écoute voit la différence (figure~\ref{fig:rotation})~: un creux d'environ 1\,dB à 2\,kHz debout, de 2,3
@@ -893,6 +898,125 @@ courbe dans la pièce~; pour le son précoce en un point fixe, la physique donne
 filtres par $C$, elle compare ce qu'envoient les enceintes~; ce qu'entendent les auditeurs reste à
 tester.
 
+\subsection{Un test face à un jumeau sans interférences}
+\label{sec:twin}
+
+Les mesures de cette section classent les filtres différemment, et chacune juge par rapport à une
+référence qui penche d'un côté. La rugosité prise contre un lissage à l'octave ne voit pas un écart plus
+large qu'une octave, et c'est là qu'une pente faible met ses lobes. Le son précoce en un point fixe est
+jugé par rapport à une réponse plate~: un filtre qui retire des réflexions y gagne pour cette seule
+raison, et la source omnidirectionnelle obtient le pire score (tableau~\ref{tab:coherent}). La question de
+savoir si les pentes faibles nuisent à ce que reçoit l'auditeur a donc été testée à part, selon un
+protocole écrit et committé avec sa règle de décision avant tout calcul
+(\texttt{protocol/crossover-slopes.md} dans le dépôt).
+
+\emph{La référence} est le jumeau sans interférences de chaque variante~: mêmes haut-parleurs, mêmes
+filtres, même diffraction, chaque haut-parleur ramené à chaque fréquence au centre des haut-parleurs
+pondéré par leur puissance dans l'axe,
+\begin{equation}
+\vect s_0(f) = \frac{\sum_d |X_d H_d(\text{axe})|^2\,\vect c_d}{\sum_d |X_d H_d(\text{axe})|^2},
+\qquad H^{\text{jumeau}}_d(\vect u) = H_d(\vect u)\, e^{-jk\,\vect u\cdot(\vect c_d - \vect s_0)}.
+\end{equation}
+Hors de la bande où les haut-parleurs se recouvrent, le jumeau est l'enceinte elle-même. Dans cette
+bande, il garde la directivité de chaque haut-parleur, mêlée par le filtre, et ne retire que la
+différence de marche entre eux. Ce qui sépare une variante de son jumeau, ce sont les lobes, quoi qu'ils
+fassent~: un creux qui retire une partie d'une réflexion près du raccordement compte comme n'importe quel
+autre changement.
+
+\emph{La mesure} suit l'audition. Chaque réponse devient un motif d'excitation~: sa puissance lissée par
+les filtres auditifs de Glasberg et Moore \cite{glasberg1990}, tous les quarts d'ERB de 200\,Hz à
+10\,kHz. La distance entre deux motifs est la racine de la somme de leurs écarts en dB au carré sur
+l'échelle des ERB, si bien qu'un changement large compte plus qu'un changement étroit de même
+profondeur. Avant le calcul de toute enceinte, la mesure a été étalonnée sur des résonances~: un pic de
+$Q = 50$ atteint la valeur d'un pic de 1,5\,dB de $Q = 1$ à \nslLfiftyA\,dB, quand les auditeurs ont
+besoin d'environ 10\,dB contre 1 à 2\,dB \cite{toole1988}~; l'autre candidate, le plus grand changement
+dans un seul canal, donnait \nslLfiftyB\,dB et a été écartée. Sans y avoir été ajustée, la mesure
+demande aussi à un creux de $Q = 50$ une profondeur d'environ \nslDipFifty\,dB pour égaler ce pic,
+l'asymétrie entre pics et creux que rapporte Bücklein \cite{bucklein1981}. Les distances sont données en
+unités $T$, la valeur du pic de 1,5\,dB à $Q = 1$~: environ un seuil, comme échelle.
+
+\emph{Cinq voies} ont été comparées, pour les sept enceintes de la section~\ref{sec:proposal} avec leurs
+quatre filtres, dans les \nslRooms\ pièces tirées au hasard, chaque trajet quittant l'enceinte en champ
+lointain~: le son direct vers l'auditeur assis (P1s) et vers un auditeur debout, oreilles à 1,65\,m
+(P1d)~; le spectre de chaque première réflexion, pondéré par l'énergie qu'elle apporte (P2)~; le son
+précoce aux quatorze points de la section~\ref{sec:interference}, avec ses phases (P3)~; le régime établi,
+en énergie (P4).
+
+\emph{Les vérifications.} Le premier passage s'y est arrêté. Le jumeau ramenait alors tous les
+haut-parleurs au centre de la face avant, ce qui, dans une somme avec les phases, déplace aussi la
+source~: la coaxiale, dont les haut-parleurs partagent un même centre, différait de son jumeau de
+1,06\,$T$ en P3. Le contrôle positif, la deux voies couchée, était jugé sur la médiane des pièces, dont la
+moitié pointe l'enceinte vers l'auditeur, dont le son direct ne forme de lobe dans aucune orientation
+(\nslAimMedian\,$T$ dans ces \nslAimRooms\ pièces, \nslStraightMedian\,$T$ quand l'enceinte est
+parallèle aux murs latéraux). Un amendement, committé avant le second passage, a donné au jumeau le
+centre ci-dessus et jugé le contrôle sur le quart des auditeurs que cite la section~\ref{sec:side},
+critère fixé après avoir vu les données~: \nslControl\,$T$, au-dessus du 1\,$T$ demandé. La coaxiale
+égale alors son jumeau aux arrondis près, et P1, P2 et P4, qui sont des puissances, ne changent pas.
+
+\begin{table}[t]
+\centering
+\caption{Écart au jumeau sans interférences, enceinte deux voies ($T$, médiane des \nslRooms\ pièces)~:
+son direct vers un auditeur assis et debout, chaque première réflexion, son précoce aux oreilles avec ses
+phases, régime établi.}
+\label{tab:twin}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+& P1s & P1d & P2 & P3 & P4 \\
+& assis & debout & réflexions & précoce, oreilles & établi \\
+\midrule
+\rows{twin_dome}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{LR2 et LR4 face au brickwall~: médiane sur les pièces de la différence appariée de leurs écarts
+au jumeau ($T$), pour les six enceintes dont les haut-parleurs sont écartés. Règle du protocole~: une voie
+appuie l'idée que les pentes faibles nuisent quand la différence atteint $+0,5\,T$ pour au moins cinq des
+six.}
+\label{tab:twin-delta}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+& P1s & P1d & P2 & P3 & P4 \\
+\midrule
+\rows{twin_delta}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{Les pentes faibles s'écartent davantage} (tableaux~\ref{tab:twin} et~\ref{tab:twin-delta}). Le LR2
+s'écarte de son jumeau d'au moins 0,5\,$T$ de plus que le brickwall pour au moins cinq des six enceintes,
+la règle fixée d'avance, sur quatre voies~: le son direct de l'auditeur debout (jusqu'à
+\nslDLrTwoFirStandingMax\,$T$), chaque réflexion (\nslDLrTwoFirReflMin\ à \nslDLrTwoFirReflMax\,$T$), le
+son précoce aux oreilles (jusqu'à \nslDLrTwoFirEarsMax\,$T$) et le régime établi (\nslDLrTwoFirSteadyMin\
+à \nslDLrTwoFirSteadyMax\,$T$). Pour l'auditeur assis, le son direct ne donne pas de réponse
+générale~: les enceintes compactes forment à peine de lobes aux angles où l'on s'assoit
+(\nslDomeLrTwoSeated\,$T$ pour la deux voies en LR2), les colonnes si (\nslTowerThreeLrTwoSeated\ et
+\nslTowerFourLrTwoSeated\,$T$). Le LR4 et le LR8 s'écartent eux aussi davantage que le brickwall sur le son
+direct debout, chaque réflexion et le régime établi, moins que le LR2~; aux oreilles, leur différence
+dépasse 0,5\,$T$ pour \nslDLrFourFirEarsUp\ et \nslDLrEightFirEarsUp\ enceintes sur six.
+
+\emph{L'audition lisse les creux du brickwall.} Dix à treize fois plus étroits que ceux d'un
+Linkwitz-Riley, ils tiennent dans un seul filtre auditif~: les réflexions de la deux voies s'écartent de
+celles du jumeau de \nslDomeFirRefl\,$T$ avec le brickwall, de \nslDomeLrTwoRefl\,$T$ avec le LR2. Aux
+oreilles, la lecture de la section~\ref{sec:interference} se retourne. Face à une réponse plate, le LR2
+paraissait le plus régulier, parce que son creux retire les rebonds sur le sol et le plafond près du
+raccordement~; face au jumeau, ce retrait est un changement large du son précoce, \nslDomeLrTwoEars\,$T$
+contre \nslDomeFirEars\,$T$ pour le brickwall, le reste du spectre étant réfléchi comme avant.
+
+\emph{Exceptions et limites.} Dans la MTM, les deux boomers forment des lobes entre eux sous le
+raccordement, ce qu'aucune pente ne change (\nslMtmFirRefl\,$T$ en P2 avec le brickwall). Les colonnes,
+calculées en champ lointain, portent les plus grands chiffres et les moins sûrs. Sans aucun lobe, la
+pente change aussi la façon dont les directivités des haut-parleurs se mêlent~: en régime établi, chaque
+jumeau s'écarte de celui du brickwall de \nslBlendMonitorLrTwo\,$T$ au plus (le moniteur en LR2), un écart
+que ce test décrit sans le juger. Un écart au jumeau n'est pas non plus une préférence~: que les auditeurs
+préfèrent un son précoce avec moins de réflexions sur le sol et le plafond près du raccordement, ou
+l'enceinte sans interférences, relève des tests d'écoute. Les haut-parleurs sont des pistons, et
+l'étalonnage repose sur des valeurs publiées approximatives.
+
 % =============================================================================================
 \clearpage
 \section{Une norme à deux orbites fidèle aux pièces}
@@ -1030,7 +1154,9 @@ la PIR à \nlibCorrPir, celle de la réponse moyenne des pièces elles-mêmes à
 (figure~\ref{fig:library-index}). Les deux termes de la corrélation sont de même nature~: l'indice lit sur
 les orbites ce que la coloration des pièces lit trajet par trajet, ce que l'enceinte envoie dans les
 réflexions (section~\ref{sec:measures}). La corrélation montre que les deux orbites contiennent cette
-information. Elle ne montre pas que l'indice prédit ce que l'on entend.
+information. Elle ne montre pas que l'indice prédit ce que l'on entend. Sa rugosité manque en outre les
+écarts plus larges qu'une octave, qui portent l'essentiel de ce qui sépare les filtres dans le test de la
+section~\ref{sec:twin}.
 
 Les moyennes continuent de flatter les faibles pentes~: avec la deux voies à dôme nu, la rugosité de la
 PIR vaut \nlibDomeLrTwoPir\,dB avec le LR2 et \nlibDomeFirPir\,dB avec le brickwall, alors que les premières
@@ -1052,9 +1178,11 @@ premières réflexions.
 l'estimation de la CTA-2034 et le dire.
 \item Prédire la réponse dans la pièce en régime établi par $0,1\,\mathrm{LW} + 0,9\,\mathrm{SP}$, le son précoce
 par $0,4\,\mathrm{LW} + 0,4\,\mathrm{ER} + 0,2\,\mathrm{SP}$.
-\item Donner la coloration des réflexions par l'indice des orbites, avec les réponses des directions de
-premières réflexions elles-mêmes plutôt que leur seule moyenne, comme une description de l'enceinte
-dont des tests d'écoute devraient établir le lien avec la coloration perçue.
+\item Donner les réponses des directions de premières réflexions elles-mêmes plutôt que leur seule
+moyenne, et un indice de coloration lu sur elles, comme une description de l'enceinte dont des tests
+d'écoute devraient établir le lien avec la coloration perçue. Cet indice demande une mesure qui voie les
+écarts larges, ce que ne fait pas la rugosité à l'octave de l'indice des orbites
+(section~\ref{sec:twin}).
 \end{itemize}
 La bibliothèque est simulée, avec une seule géométrie par famille, la directivité en champ lointain de
 chaque haut-parleur sur son baffle et des pièces rectangulaires~; elle montre que les deux orbites
@@ -1093,7 +1221,9 @@ dans la pièce devienne plus régulière dépend des haut-parleurs~: quand le bo
 raccordement et que le tweeter ne l'est pas, le brickwall transforme le creux des lobes en une marche de
 directivité. Raccorder les directivités (un guide d'onde) et resserrer la bande où les deux
 haut-parleurs jouent ensemble (un filtre raide) traitent deux causes différentes de la coloration hors
-axe.
+axe. Testées face à un jumeau sans interférences sur une échelle auditive (section~\ref{sec:twin}), les
+pentes faibles s'écartent davantage que le brickwall sur quatre voies sur cinq, son précoce aux oreilles
+compris~; que cet écart s'entende comme une dégradation relève des tests d'écoute.
 
 \subsection{Une pondération mise à jour}
 
@@ -1132,7 +1262,8 @@ sol dans le plan médian \cite{bech1996,olive1989}), ce qu'aucune pondération d
 saisit. Les mesures de coloration sont physiques~: la coloration des trajets et l'indice des orbites
 décrivent l'enceinte plutôt que la pression à l'oreille (section~\ref{sec:measures}), et un creux étroit
 s'entend moins qu'un creux large de même profondeur \cite{bucklein1981}, ce dont l'écart RMS ne tient
-compte qu'à travers sa largeur.
+compte qu'à travers sa largeur~; le test de la section~\ref{sec:twin} emploie une mesure sur l'échelle
+auditive qui en tient compte.
 L'enceinte principale est une seule deux voies bibliothèque, en deux versions~; la bibliothèque de la
 section~\ref{sec:proposal} y ajoute cinq familles, une géométrie chacune, et aucune cardioïde. Enfin, l'étude
 part de la CTA-2034-A~; sa révision B n'a pas été vérifiée.
@@ -1154,7 +1285,9 @@ s'entend, les trajets parvenant à l'oreille en une seule somme, relève des tes
 une réponse plus régulière dans la pièce que si les directivités des haut-parleurs se raccordent. Sommés avec leurs phases aux
 oreilles, les trajets laissent le régime établi tel quel~; en un point fixe, le son précoce porte le
 peigne des rebonds sur le sol et le plafond, qu'un creux de Linkwitz-Riley retire près du raccordement
-avec les réflexions, et qu'une écoute à deux oreilles atténue. Sept
+avec les réflexions, et qu'une écoute à deux oreilles atténue. Comparées sur une échelle auditive à la
+même enceinte sans interférences, dans un test fixé avant d'être lancé, les pentes faibles s'écartent
+davantage que le brickwall sur quatre voies sur cinq, son précoce aux oreilles compris. Sept
 enceintes de cinq familles confirment que les deux orbites peuvent porter une meilleure norme~: la
 puissance reconstruite haut-parleur par haut-parleur, $0,1\,\mathrm{LW} + 0,9\,\mathrm{SP}$ pour le régime
 établi, et la coloration des réflexions lue direction par direction.
@@ -1209,6 +1342,9 @@ Acoust. Soc. Am.}, vol.~99, n\textsuperscript{o}~6, 1996.
 
 \bibitem{olive1989} S. E. Olive, F. E. Toole, \og The Detection of Reflections in Typical Rooms\fg{},
 \emph{J. Audio Eng. Soc.}, vol.~37, n\textsuperscript{o}~7/8, 1989.
+
+\bibitem{toole1988} F. E. Toole, S. E. Olive, \og The Modification of Timbre by Resonances: Perception
+and Measurement\fg{}, \emph{J. Audio Eng. Soc.}, vol.~36, n\textsuperscript{o}~3, p.~122--142, 1988.
 
 \bibitem{bucklein1981} R. Bücklein, \og The Audibility of Frequency Response Irregularities\fg{}, \emph{J.
 Audio Eng. Soc.}, vol.~29, n\textsuperscript{o}~3, p.~126--131, 1981.

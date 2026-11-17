@@ -172,6 +172,18 @@ arrive as one sum, and how much of it is heard is for listening tests (section 6
   with the plain dome, 47 against 50 % with the waveguide). No weighting undoes the averaging: the
   colouration of a reflection has to be read in its own direction, −30 to −40° and +40 to +50° for the
   floor and ceiling at usual listening distances.
+- **Against an interference-free twin, on an auditory scale** (section 6.6, `protocol/`). Each variant
+  is compared with the same loudspeaker whose drivers interfere nowhere, on excitation patterns
+  (auditory filters one ERB wide) calibrated on Toole and Olive's resonance thresholds, by a protocol
+  committed before anything was computed. Its first run stopped at the checks; an amendment, committed
+  before the second run, fixed the twin and the positive control. Over six loudspeakers, LR2 departs
+  more than the brickwall on four pathways of five: the standing listener's direct sound, each first
+  reflection, the early sound at the ears and the steady state; the seated listener's direct sound
+  gives no general answer. The brickwall's notches fall within one auditory filter (0.20 T for the
+  two-way's reflections, against 3.36 T with LR2). Against a flat response the early sound at the ears
+  looked smoothest with LR2, whose notch removes the floor and ceiling bounces; against the twin that
+  removal is a broad change, 0.93 T against 0.16 T. A departure is not a preference: that is for
+  listening tests.
 
 ### A two-orbit standard faithful to the rooms
 
@@ -213,6 +225,7 @@ make study     # every simulated quantity (about 20 seconds on 8 cores, results/
 make coherent  # the paths with their phases at the ears (about 10 seconds, results/coherent.bin)
 make library   # the seven loudspeakers in the rooms (about 2 minutes, results/library/), and their summary
 make figures   # figures and tables in paper/, in English and in French
+make slopes    # the test against the interference-free twin (about 3 minutes, results/slopes/, protocol/ and its tables)
 make articles  # the figures of the two blog articles (articles/figures, SVG)
 make paper     # paper/main.pdf and paper/main_fr.pdf
 ```
@@ -234,10 +247,11 @@ The 300 rooms and the three named ones are in `data/rooms.json`.
 | `src/study.rs` | rooms as weights over directions, loudspeaker variants |
 | `src/analysis.rs` | in-room responses, fitted weights, prediction errors, colouration metrics |
 | `src/coherent.rs` | the images added with their phases at the ears, auditory (ERB) smoothing |
+| `src/slopes.rs`, `protocol/` | the test of the crossover slopes against an interference-free twin: excitation patterns and their calibration, the five pathways; its protocol, amendment, calibration and results |
 | `src/standard.rs`, `src/library_figures.rs` | the library's two-orbit estimates, fitted weights, orbit index, and its figures |
 | `src/figures.rs`, `src/tables.rs`, `src/plot.rs` | the report's figures (SVG drawn with plotters, converted to PDF and PNG) and tables |
 | `src/signal.rs`, `src/special.rs`, `src/sphere.rs` | frequency grids, minimum phase, smoothing, special functions, splines, directions on the sphere |
-| `src/bin/` | `study` (the simulation), `coherent` (the phases at the ears), `library` and `standard` (the seven loudspeakers), `figures` (figures and tables) |
+| `src/bin/` | `study` (the simulation), `coherent` (the phases at the ears), `library` and `standard` (the seven loudspeakers), `slopes` (the test against the twin), `figures` (figures and tables) |
 | `tests/` | integration tests; the modules carry their unit tests |
 | `data/` | the setups of the study (`rooms.json`) and the DejaVu Sans font of the figures |
 | `src/articles.rs`, `articles/figures/` | the blog articles' figures (those the report shares are drawn in `src/figures.rs`) |
