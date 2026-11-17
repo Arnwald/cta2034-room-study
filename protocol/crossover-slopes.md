@@ -153,3 +153,34 @@ paired difference `δ = d(LR2) − d(FIR)` and its median over the rooms.
 
 The calibration, the decision table and every median, whichever way they go. The article
 « Reading the Spinorama Differently » is corrected after this result.
+
+## Amendment 1, after the first run (17 November 2026)
+
+The first run (`crossover-slopes-results.md`, commit 70c9249) failed both checks above, and the protocol
+stopped as it says. The owner of the study approved this amendment before the second run. Everything
+above is kept as first written.
+
+1. **The twin, in sums with phases.**
+   - **What failed.** The coaxial differed from its twin in P3 (1.06 T), and by 10⁻¹⁵ in P1, P2 and P4.
+   - **Why.** Moving every driver to the baffle centre changes nothing in a power. In a sum with
+     phases, though, it also moves the source itself: by 2 cm for the coaxial, by 41 cm for a tower's
+     tweeter. P3 then measured that displacement rather than the lobing.
+   - **The new twin.** At each frequency, every driver is moved to the drivers' centre weighted by
+     their power on the reference axis:
+     `s0(f) = Σ_d |X_d H_d(axis)|² c_d / Σ_d |X_d H_d(axis)|²` and
+     `H_twin,d(u) = H_d(u) exp(-j k u.(c_d - s0))`.
+   - **What it changes.**
+     - Outside the band where drivers overlap, `s0` is the playing driver's centre, so the twin is the
+       variant. The coaxial is its twin exactly.
+     - A power is unchanged by the common factor `exp(j k u.s0)`. P1, P2 and P4 must therefore come out
+       as in the first run, which is a further check.
+2. **The positive control.**
+   - **What failed.** The median of P1s with LR4 was 0.57 T, under the 1 T threshold.
+   - **Why.** In 145 of the 300 rooms the loudspeaker is aimed at the listener, so the direct sound
+     arrives on its axis, where no roll makes it lobe. Those rooms give 0.00 T, against 3.64 T where
+     the loudspeaker is parallel to the side walls.
+   - **The new criterion.** It is the study's own statement, which concerns a quarter of the
+     listeners: the 75th percentile of P1s with LR4 over the 300 rooms must exceed 1 T.
+   - **This criterion was set after seeing the data**, where the 75th percentile is 1.99 T.
+
+The decision rule, the instrument and the pathways are unchanged.
