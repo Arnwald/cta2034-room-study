@@ -290,22 +290,41 @@ fn interp_complex(src: &[f64], v: &[C64], dst: &[f64]) -> Vec<C64> {
         .collect()
 }
 
-/// ``sum_d X_d H_d(u)``, the twin's with each driver moved to the baffle centre:
-/// ``H_d(u) exp(-j k u.c_d)``. ``u``: the direction in the loudspeaker's own frame.
-fn combine(x: &[Vec<C64>], h: &[Vec<C32>], u: &Vec3, centres: &[Vec3], k: &[f64], twin: bool) -> Vec<C64> {
+/// ``sum_d X_d H_d(u)``; with ``twin = Some(s0)``, the twin's, every driver moved at each frequency
+/// to ``s0`` (amendment 1 of the protocol): ``H_d(u) exp(-j k u.(c_d - s0))``. ``u``: the direction in
+/// the loudspeaker's own frame.
+fn combine(x: &[Vec<C64>], h: &[Vec<C32>], u: &Vec3, centres: &[Vec3], k: &[f64], twin: Option<&[Vec3]>) -> Vec<C64> {
     let nf = k.len();
     let mut out = vec![C64::new(0.0, 0.0); nf];
     for (d, hd) in h.iter().enumerate() {
         let us = dot(u, &centres[d]);
         for j in 0..nf {
             let mut v = x[d][j] * C64::new(hd[j].re as f64, hd[j].im as f64);
-            if twin {
-                v *= C64::from_polar(1.0, -k[j] * us);
+            if let Some(s0) = twin {
+                v *= C64::from_polar(1.0, -k[j] * (us - dot(u, &s0[j])));
             }
             out[j] += v;
         }
     }
     out
+}
+
+/// The twin's centre at each frequency: the drivers' centres weighted by their power on the
+/// reference axis, ``|X_d H_d(axis)|^2``.
+fn twin_centres(x: &[Vec<C64>], on: &[Vec<C64>], centres: &[Vec3]) -> Vec<Vec3> {
+    (0..on[0].len())
+        .map(|j| {
+            let (mut s, mut n) = ([0.0; 3], 0.0);
+            for d in 0..centres.len() {
+                let p = (x[d][j] * on[d][j]).norm_sqr();
+                for (a, c) in s.iter_mut().zip(&centres[d]) {
+                    *a += p * c;
+                }
+                n += p;
+            }
+            s.map(|a| a / n)
+        })
+        .collect()
 }
 
 fn band_mean(f: &[f64], v: &[f64]) -> f64 {
@@ -329,6 +348,9 @@ pub fn run_layout(layout: &Layout, roll_deg: f64, setups: &[Setup]) -> LayoutVal
     let on = far_s.on_axis();
     let xs: Vec<Vec<Vec<C64>>> = KINDS.iter().map(|&k| crossover::filters(k, &freqs, layout, &on)).collect();
     let xl: Vec<Vec<Vec<C64>>> = xs.iter().map(|x| x.iter().map(|d| interp_complex(&freqs, d, &lin)).collect()).collect();
+    let on_l = far_l.on_axis();
+    let s0_s: Vec<Vec<Vec3>> = xs.iter().map(|x| twin_centres(x, &on, &centres)).collect();
+    let s0_l: Vec<Vec<Vec3>> = xl.iter().map(|x| twin_centres(x, &on_l, &centres)).collect();
 
     // The power on the quadrature, for the diffuse field: [kind][0 variant, 1 twin].
     let grid = sphere::fibonacci(N_GRID);
@@ -342,7 +364,7 @@ pub fn run_layout(layout: &Layout, roll_deg: f64, setups: &[Setup]) -> LayoutVal
                 let mut m = Mat::<f32>::zeros(N_GRID, nf);
                 m.data.par_chunks_mut(nf).enumerate().for_each(|(g, row)| {
                     let h: Vec<Vec<C32>> = (0..nd).map(|d| resp_grid[d].row(g).to_vec()).collect();
-                    for (o, v) in row.iter_mut().zip(combine(&xs[ki], &h, &rgrid[g], &centres, &k_s, twin)) {
+                    for (o, v) in row.iter_mut().zip(combine(&xs[ki], &h, &rgrid[g], &centres, &k_s, twin.then_some(&s0_s[ki][..]))) {
                         *o = v.norm_sqr() as f32;
                     }
                 });
@@ -398,7 +420,7 @@ pub fn run_layout(layout: &Layout, roll_deg: f64, setups: &[Setup]) -> LayoutVal
                 let spectra: Vec<Vec<f64>> = dirs
                     .iter()
                     .zip(&h_s)
-                    .map(|(u, h)| combine(&xs[ki], h, u, &centres, &k_s, twin).iter().map(|c| c.norm_sqr()).collect())
+                    .map(|(u, h)| combine(&xs[ki], h, u, &centres, &k_s, twin.then_some(&s0_s[ki][..])).iter().map(|c| c.norm_sqr()).collect())
                     .collect();
                 let mut e = vec![0.0; nf];
                 for i in 0..n_img {
@@ -418,7 +440,7 @@ pub fn run_layout(layout: &Layout, roll_deg: f64, setups: &[Setup]) -> LayoutVal
                     .iter()
                     .zip(&h_l)
                     .map(|(&i, h)| {
-                        let c = combine(&xl[ki], h, &dirs[i], &centres, &k_l, twin);
+                        let c = combine(&xl[ki], h, &dirs[i], &centres, &k_l, twin.then_some(&s0_l[ki][..]));
                         c.iter().zip(wl.row(i)).map(|(v, wk)| v * (wk.sqrt() * im.distance[i])).collect()
                     })
                     .collect();

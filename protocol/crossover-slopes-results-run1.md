@@ -1,4 +1,4 @@
-# Results: do gentle crossover slopes harm what a listener receives in a room?
+# First run (stopped at the checks): do gentle crossover slopes harm what a listener receives in a room?
 
 Output of `cargo run --release --bin slopes -- run`, following `crossover-slopes.md` as committed before the
 computation. Distances to each variant's interference-free twin, in T (summary A, T = 3.711, from

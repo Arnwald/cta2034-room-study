@@ -140,23 +140,42 @@ fn report(root: &Path) {
     let path_values = |v: &LayoutValues, ki: usize, p: usize| -> Vec<f64> { v.rooms.iter().map(|r| r.d[ki][p] / t).collect() };
     let mut md = String::new();
     writeln!(md, "# Results: do gentle crossover slopes harm what a listener receives in a room?\n").unwrap();
-    writeln!(md, "Output of `cargo run --release --bin slopes -- run`, following `crossover-slopes.md` as committed before the").unwrap();
-    writeln!(md, "computation. Distances to each variant's interference-free twin, in T (summary A, T = {t:.3}, from").unwrap();
+    writeln!(md, "Output of `cargo run --release --bin slopes -- run`, following `crossover-slopes.md` with its amendment 1,").unwrap();
+    writeln!(md, "committed before this run. Distances to each variant's interference-free twin, in T (summary A, T = {t:.3}, from").unwrap();
     writeln!(md, "`crossover-slopes-calibration.md`). Median over the {} random rooms, 10–90 % in brackets.\n", library[0].rooms.len()).unwrap();
 
     // Checks.
     let coax = library.iter().find(|v| v.name == "coaxial").unwrap();
     let coax_max = coax.rooms.iter().flat_map(|r| r.d.iter().flat_map(|d| d.iter())).fold(0.0f64, |m, v| m.max(*v / t));
-    let control = median(&path_values(&side, k_index("lr4"), 0));
+    // Amendment 1: the 75th percentile, the study's quarter of the listeners.
+    let control = percentile(&path_values(&side, k_index("lr4"), 0), 75.0);
     writeln!(md, "## Checks\n").unwrap();
     writeln!(md, "- The coaxial against its twin: {coax_max:.2e} T at most (must be zero to rounding).").unwrap();
     writeln!(
         md,
-        "- Positive control, the two-way laid on its side, P1s with LR4: median {control:.2} T (must exceed 1 T): {}.",
+        "- Positive control, the two-way laid on its side, P1s with LR4: 75th percentile {control:.2} T (must exceed 1 T, amendment 1): {}.",
         if control > 1.0 { "passed" } else { "FAILED, the protocol stops" }
     )
     .unwrap();
-    writeln!(md, "  Every crossover, P1s: {}.\n", names.iter().enumerate().map(|(ki, n)| format!("{n} {}", cell(&path_values(&side, ki, 0)))).collect::<Vec<_>>().join(", ")).unwrap();
+    writeln!(md, "  Every crossover, P1s: {}.", names.iter().enumerate().map(|(ki, n)| format!("{n} {}", cell(&path_values(&side, ki, 0)))).collect::<Vec<_>>().join(", ")).unwrap();
+    // Amendment 1: P1, P2 and P4 are powers, which the twin's centre cannot change.
+    let run1 = root.join("results/slopes-run1");
+    if run1.is_dir() {
+        let mut worst = 0.0f64;
+        for v in &library {
+            let path = run1.join(format!("{}.json", v.name));
+            let old: LayoutValues = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+            for (a, b) in v.rooms.iter().zip(&old.rooms) {
+                for ki in 0..KINDS.len() {
+                    for p in [0, 1, 2, 4] {
+                        worst = worst.max((a.d[ki][p] - b.d[ki][p]).abs() / t);
+                    }
+                }
+            }
+        }
+        writeln!(md, "- P1, P2 and P4 against the first run (they must not change, amendment 1): {worst:.2e} T at most.").unwrap();
+    }
+    writeln!(md).unwrap();
 
     // Tables per pathway.
     let labels = ["P1s, direct sound, seated", "P1d, direct sound, standing", "P2, each first reflection's spectrum", "P3, early sound at the ears", "P4, steady state"];
